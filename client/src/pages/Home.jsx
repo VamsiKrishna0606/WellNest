@@ -35,25 +35,45 @@ const Home = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, [token]);
+  axios.get('/api/habits', {
+    headers: { Authorization: `Bearer ${token}` }
+  }).then(res => {
+    setHabits(res.data);
+    const analysis = res.data.map(h => ({
+      name: h.name,
+      percent: h.checked ? 100 : 0
+    }));
+    setAnalytics(analysis);
+  });
+
+  axios.get('/api/food', {
+    headers: { Authorization: `Bearer ${token}` }
+  }).then(res => setFoodLogs(res.data));
+
+}, [token]);
+
 
   const totalCalories = foodLogs.reduce((sum, food) => sum + food.calories, 0);
 
   const handleAddHabit = async () => {
-  console.log("Submitting habit:", newHabit); // 🔍 log input
+  if (!newHabit.trim()) return alert("Please enter a habit");
+
+  console.log("Submitting habit:", newHabit); // Debug log
+
   try {
     const res = await axios.post('/api/habits', { name: newHabit }, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    console.log("Added habit:", res.data); // ✅ log response
+    console.log("Habit added:", res.data);
     setNewHabit('');
     setShowHabitForm(false);
-    fetchData();
+    fetchData(); // reload updated list
   } catch (err) {
     console.error('❌ Error adding habit:', err.response?.data || err.message);
+    alert("Failed to add habit. Check console.");
   }
 };
+
 
 
   return (
@@ -80,7 +100,11 @@ const Home = () => {
             </div>
           ))}
           {!showHabitForm ? (
-            <a href="#" className="add-link" onClick={() => setShowHabitForm(true)}>+ Add Habit</a>
+            <button className="add-link" onClick={() => setShowHabitForm(true)}>
+  + Add Habit
+</button>
+
+
           ) : (
             <div className="habit-form">
               <input
@@ -104,7 +128,10 @@ const Home = () => {
             </div>
           ))}
           <div className="food-footer">
-            <a href="#" className="add-link">Add Food</a>
+            <button className="add-link" onClick={() => setShowHabitForm(true)}>
+              + Add Food
+            </button>
+
             <span>Total <b>{totalCalories}</b> Cal</span>
           </div>
         </div>
