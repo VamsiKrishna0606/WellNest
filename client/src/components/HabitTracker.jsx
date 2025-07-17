@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Calendar } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 
 const emojis = ['🧘', '💧', '🏃', '🍎', '📖', '💪', '🚴', '🎯', '⚡', '🌟'];
 
@@ -54,6 +54,13 @@ const HabitTracker = () => {
       setNewHabit({ name: "", emoji: "🧘" });
       setShowAddForm(false);
     }
+  };
+
+  const deleteHabit = (habitId) => {
+    setHabits(prev => ({
+      ...prev,
+      [selectedDate]: (prev[selectedDate] || []).filter(habit => habit.id !== habitId)
+    }));
   };
 
   const currentHabits = getHabitsForDate(selectedDate);
@@ -137,6 +144,14 @@ const HabitTracker = () => {
             }`}>
               {habit.completed ? "Done" : "Pending"}
             </div>
+            
+            <button
+              onClick={() => deleteHabit(habit.id)}
+              className="ml-2 p-1 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-smooth opacity-70 hover:opacity-100"
+              title="Delete habit"
+            >
+              <X className="w-3 h-3 sm:w-4 sm:h-4" />
+            </button>
           </div>
         ))}
       </div>
