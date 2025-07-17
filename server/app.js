@@ -6,6 +6,7 @@ import habitRoutes from "./routes/habitRoutes.js"; // Correct import
 import foodRoutes from "./routes/foodRoutes.js";
 import journalRoutes from "./routes/journalRoutes.js";
 import goalRoutes from "./routes/goalRoutes.js";
+import statsRoutes from "./routes/statsRoutes.js";
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use("/api/habits", habitRoutes);
 app.use("/api/foodlogs", foodRoutes);
 app.use("/api/journals", journalRoutes);
 app.use('/api/goals', goalRoutes);
+app.use("/api/stats", statsRoutes);
 
 app.listen(process.env.PORT, () => {
   console.log(`✅ Server running on port ${process.env.PORT}`);
