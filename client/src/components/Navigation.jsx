@@ -2,10 +2,12 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import UserGoalsModal from "./UserGoalsModal";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showGoalsModal, setShowGoalsModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
@@ -35,6 +37,11 @@ const Navigation = () => {
 
   const handleLogout = () => {
     logout();
+    setShowUserMenu(false);
+  };
+
+  const handleProfileSettings = () => {
+    setShowGoalsModal(true);
     setShowUserMenu(false);
   };
 
@@ -103,7 +110,10 @@ const Navigation = () => {
                     <div className="text-xs text-slate-400">{user.email}</div>
                   </div>
                   <div className="py-2">
-                    <button className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 transition-colors">
+                    <button 
+                      onClick={handleProfileSettings}
+                      className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 transition-colors"
+                    >
                       Profile Settings
                     </button>
                     <button className="w-full text-left px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 transition-colors">
@@ -172,6 +182,12 @@ const Navigation = () => {
           </div>
         )}
       </div>
+
+      {/* User Goals Modal */}
+      <UserGoalsModal 
+        isOpen={showGoalsModal} 
+        onClose={() => setShowGoalsModal(false)} 
+      />
     </nav>
   );
 };

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Plus, X } from "lucide-react";
 
 const FoodLogger = () => {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -45,6 +45,13 @@ const FoodLogger = () => {
       setNewFood({ name: "", calories: "", category: "Breakfast" });
       setShowAddForm(false);
     }
+  };
+
+  const deleteFood = (foodId) => {
+    setFoods(prev => ({
+      ...prev,
+      [selectedDate]: (prev[selectedDate] || []).filter(food => food.id !== foodId)
+    }));
   };
 
   const currentFoods = getFoodsForDate(selectedDate);
@@ -176,6 +183,7 @@ const FoodLogger = () => {
                       <th className="text-left p-3 text-slate-300 text-sm font-medium">Food</th>
                       <th className="text-right p-3 text-slate-300 text-sm font-medium">Calories</th>
                       <th className="text-right p-3 text-slate-300 text-sm font-medium">Time</th>
+                      <th className="text-right p-3 text-slate-300 text-sm font-medium">Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -184,6 +192,15 @@ const FoodLogger = () => {
                         <td className="p-3 text-slate-200">{food.name}</td>
                         <td className="p-3 text-right text-indigo-400 font-medium">{food.calories}</td>
                         <td className="p-3 text-right text-slate-400 text-sm">{food.time}</td>
+                        <td className="p-3 text-right">
+                          <button
+                            onClick={() => deleteFood(food.id)}
+                            className="p-1 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-smooth opacity-70 hover:opacity-100"
+                            title="Delete food entry"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
