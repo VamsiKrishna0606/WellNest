@@ -10,7 +10,7 @@ const JournalSchema = new mongoose.Schema({
     required: true,
   },
   date: {
-    type: String,  // dd-mm-yyyy
+    type: String,
     required: true,
   },
 });

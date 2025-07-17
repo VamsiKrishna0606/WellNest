@@ -10,7 +10,15 @@ const FoodLogSchema = new mongoose.Schema({
     required: true,
   },
   date: {
-    type: String,  // dd-mm-yyyy as string
+    type: String, // dd-mm-yyyy
+    required: true,
+  },
+  time: {
+    type: String,
+    required: true,
+  },
+  category: {
+    type: String,
     required: true,
   },
 });

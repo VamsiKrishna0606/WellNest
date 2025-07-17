@@ -14,8 +14,12 @@ const HabitSchema = new mongoose.Schema({
     required: false,
   },
   date: {
-    type: String,   // ✅ Store dd-mm-yyyy as string, not Date type
+    type: String, // ✅ Store dd-mm-yyyy as string, not Date type
     required: true,
+  },
+  completed: {
+    type: Boolean,
+    default: false,
   },
 });
 

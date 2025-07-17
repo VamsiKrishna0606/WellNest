@@ -1,78 +1,82 @@
-
-import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import { Calendar, X } from "lucide-react";
 
-const emojis = ['🧘', '💧', '🏃', '🍎', '📖', '💪', '🚴', '🎯', '⚡', '🌟'];
+const emojis = ["🧘", "💧", "🏃", "🍎", "📖", "💪", "🚴", "🎯", "⚡", "🌟"];
 
 const HabitTracker = () => {
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [habits, setHabits] = useState({});
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: "", emoji: "🧘" });
 
-  // Load habits from localStorage on component mount
-  useEffect(() => {
-    const savedHabits = localStorage.getItem('wellnest-habits');
-    if (savedHabits) {
-      setHabits(JSON.parse(savedHabits));
-    }
-  }, []);
+  const {
+    data: habits,
+    refetch,
+    isLoading,
+  } = useQuery({
+    queryKey: ["habits"],
+    queryFn: () =>
+      fetch("http://localhost:5000/api/habits").then((res) => res.json()),
+  });
 
-  // Save habits to localStorage whenever habits change
-  useEffect(() => {
-    localStorage.setItem('wellnest-habits', JSON.stringify(habits));
-  }, [habits]);
+  const addHabitMutation = useMutation({
+    mutationFn: (habitData) =>
+      fetch("http://localhost:5000/api/habits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(habitData),
+      }),
+    onSuccess: () => refetch(),
+  });
 
-  const getHabitsForDate = (date) => {
-    return habits[date] || [];
-  };
+  const deleteHabitMutation = useMutation({
+    mutationFn: (id) =>
+      fetch(`http://localhost:5000/api/habits/${id}`, {
+        method: "DELETE",
+      }),
+    onSuccess: () => refetch(),
+  });
 
-  const toggleHabit = (habitId) => {
-    setHabits(prev => ({
-      ...prev,
-      [selectedDate]: (prev[selectedDate] || []).map(habit =>
-        habit.id === habitId ? { ...habit, completed: !habit.completed } : habit
-      )
-    }));
-  };
+  const toggleHabitMutation = useMutation({
+    mutationFn: (id) =>
+      fetch(`http://localhost:5000/api/habits/${id}`, {
+        method: "PATCH",
+      }),
+    onSuccess: () => refetch(),
+  });
+
+  const currentHabits = habits?.filter((h) => h.date === selectedDate) || [];
+
+  const completedCount = currentHabits.filter((h) => h.completed).length;
+  const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
 
   const addHabit = () => {
     if (newHabit.name.trim()) {
       const newHabitObj = {
-        id: Date.now(),
         name: newHabit.name,
-        emoji: newHabit.emoji,
-        completed: false,
-        createdDate: selectedDate
+        frequency: "Daily",
+        icon: newHabit.emoji,
+        date: selectedDate,
       };
-
-      setHabits(prev => ({
-        ...prev,
-        [selectedDate]: [...(prev[selectedDate] || []), newHabitObj]
-      }));
-
+      addHabitMutation.mutate(newHabitObj);
       setNewHabit({ name: "", emoji: "🧘" });
       setShowAddForm(false);
     }
   };
 
   const deleteHabit = (habitId) => {
-    setHabits(prev => ({
-      ...prev,
-      [selectedDate]: (prev[selectedDate] || []).filter(habit => habit.id !== habitId)
-    }));
+    deleteHabitMutation.mutate(habitId);
   };
-
-  const currentHabits = getHabitsForDate(selectedDate);
-  const completedCount = currentHabits.filter(h => h.completed).length;
-  const isCurrentDate = selectedDate === new Date().toISOString().split('T')[0];
 
   return (
     <div className="glass-card hover:shadow-indigo-500/20 transition-smooth slide-in p-4 sm:p-6 h-full flex flex-col">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-4">
-        <h2 className="text-xl sm:text-2xl font-semibold text-white gradient-text-light">Habit Tracker</h2>
-        
-        {/* Date Picker */}
+        <h2 className="text-xl sm:text-2xl font-semibold text-white gradient-text-light">
+          Habit Tracker
+        </h2>
+
         <div className="flex items-center space-x-2">
           <Calendar className="w-4 h-4 text-indigo-400" />
           <input
@@ -84,31 +88,39 @@ const HabitTracker = () => {
         </div>
       </div>
 
-      {/* Progress Summary */}
       {currentHabits.length > 0 && (
         <div className="mb-4 p-3 bg-white/5 rounded-lg border border-white/10">
           <div className="flex justify-between items-center text-sm">
             <span className="text-slate-300">Progress</span>
-            <span className="text-indigo-400 font-medium">{completedCount}/{currentHabits.length} completed</span>
+            <span className="text-indigo-400 font-medium">
+              {completedCount}/{currentHabits.length} completed
+            </span>
           </div>
           <div className="w-full bg-white/10 rounded-full h-2 mt-2">
-            <div 
+            <div
               className="bg-gradient-to-r from-indigo-500 to-blue-500 h-2 rounded-full transition-all duration-500 progress-bar"
-              style={{ width: `${currentHabits.length > 0 ? (completedCount / currentHabits.length) * 100 : 0}%` }}
+              style={{
+                width: `${
+                  currentHabits.length > 0
+                    ? (completedCount / currentHabits.length) * 100
+                    : 0
+                }%`,
+              }}
             ></div>
           </div>
         </div>
       )}
-      
+
       <div className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
+        {isLoading && <p className="text-slate-300">Loading habits...</p>}
         {currentHabits.map((habit, index) => (
-          <div 
-            key={habit.id} 
+          <div
+            key={habit._id}
             className="habit-item flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10 shadow-sm backdrop-blur-sm"
             style={{ animationDelay: `${index * 0.1}s` }}
           >
             <button
-              onClick={() => isCurrentDate && toggleHabit(habit.id)}
+              onClick={() => isCurrentDate && toggleHabitMutation.mutate(habit._id)}
               disabled={!isCurrentDate}
               className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg border-2 flex items-center justify-center transition-bounce floating-element ${
                 habit.completed
@@ -124,29 +136,34 @@ const HabitTracker = () => {
                 </svg>
               )}
             </button>
-            
-            <span className="text-lg sm:text-xl mr-2 sm:mr-3 floating-element" style={{ animationDelay: `${index * 0.2}s` }}>
-              {habit.emoji}
+
+            <span
+              className="text-lg sm:text-xl mr-2 sm:mr-3 floating-element"
+              style={{ animationDelay: `${index * 0.2}s` }}
+            >
+              {habit.icon}
             </span>
-            
-            <span className={`flex-1 font-medium transition-smooth text-sm sm:text-base ${
-              habit.completed 
-                ? "text-slate-300 line-through opacity-75" 
-                : "text-slate-200"
-            }`}>
+
+            <span
+              className={`flex-1 font-medium transition-smooth text-sm sm:text-base ${
+                habit.completed
+                  ? "text-slate-300 line-through opacity-75"
+                  : "text-slate-200"
+              }`}
+            >
               {habit.name}
             </span>
-            
+
             <div className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium transition-smooth ${
-              habit.completed 
-                ? "bg-gradient-to-r from-indigo-500/20 to-blue-500/20 text-indigo-300 border border-indigo-400/30" 
+              habit.completed
+                ? "bg-gradient-to-r from-indigo-500/20 to-blue-500/20 text-indigo-300 border border-indigo-400/30"
                 : "bg-white/10 text-slate-400 border border-white/20"
             }`}>
               {habit.completed ? "Done" : "Pending"}
             </div>
-            
+
             <button
-              onClick={() => deleteHabit(habit.id)}
+              onClick={() => deleteHabit(habit._id)}
               className="ml-2 p-1 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-smooth opacity-70 hover:opacity-100"
               title="Delete habit"
             >
@@ -156,7 +173,6 @@ const HabitTracker = () => {
         ))}
       </div>
 
-      {/* Add New Habit */}
       <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/20">
         {!showAddForm ? (
           <button
@@ -168,21 +184,26 @@ const HabitTracker = () => {
                 : "border-slate-700 text-slate-600 cursor-not-allowed opacity-50"
             }`}
           >
-            {isCurrentDate ? "+ Add New Habit" : "Add habits on current date only"}
+            {isCurrentDate
+              ? "+ Add New Habit"
+              : "Add habits on current date only"}
           </button>
         ) : (
           <div className="space-y-3">
             <input
               type="text"
               value={newHabit.name}
-              onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
+              onChange={(e) =>
+                setNewHabit({ ...newHabit, name: e.target.value })
+              }
               placeholder="Enter habit name..."
               disabled={!isCurrentDate}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-smooth backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              onKeyPress={(e) => e.key === "Enter" && isCurrentDate && addHabit()}
+              onKeyPress={(e) =>
+                e.key === "Enter" && isCurrentDate && addHabit()
+              }
             />
-            
-            {/* Emoji Selector */}
+
             <div className="flex flex-wrap gap-2">
               {emojis.map((emoji) => (
                 <button
@@ -198,7 +219,7 @@ const HabitTracker = () => {
                 </button>
               ))}
             </div>
-            
+
             <div className="flex space-x-3">
               <button
                 onClick={addHabit}
