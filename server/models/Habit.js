@@ -1,10 +1,23 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const habitSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-    habitName: { type: String, required: true },
-    date: { type: Date, required: true },
-    status: { type: Boolean, default: false },
+const HabitSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  frequency: {
+    type: String,
+    required: true,
+  },
+  icon: {
+    type: String,
+    required: false,
+  },
+  date: {
+    type: String,   // ✅ Store dd-mm-yyyy as string, not Date type
+    required: true,
+  },
 });
 
-export default mongoose.model('Habit', habitSchema);
+const Habit = mongoose.model("Habit", HabitSchema);
+export default Habit;
