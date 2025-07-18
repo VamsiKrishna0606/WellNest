@@ -11,7 +11,13 @@ export const getAllHabits = async (req, res) => {
 
 export const createHabit = async (req, res) => {
   try {
-    const { name, frequency, icon, date } = req.body;  // ✅ include date here
+    const { name, frequency, icon, date } = req.body;
+    const existingHabit = await Habit.findOne({ name, date });
+
+    if (existingHabit) {
+      return res.status(400).json({ message: 'Habit already exists for this date' });
+    }
+
     const newHabit = new Habit({ name, frequency, icon, date });
     await newHabit.save();
     res.status(201).json(newHabit);
@@ -19,6 +25,7 @@ export const createHabit = async (req, res) => {
     res.status(500).json({ message: 'Failed to create habit', error });
   }
 };
+
 
 
 export const deleteHabit = async (req, res) => {

@@ -53,18 +53,27 @@ const HabitTracker = () => {
   const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
 
   const addHabit = () => {
-    if (newHabit.name.trim()) {
-      const newHabitObj = {
-        name: newHabit.name,
-        frequency: "Daily",
-        icon: newHabit.emoji,
-        date: selectedDate,
-      };
-      addHabitMutation.mutate(newHabitObj);
-      setNewHabit({ name: "", emoji: "🧘" });
-      setShowAddForm(false);
-    }
-  };
+  if (newHabit.name.trim()) {
+    const newHabitObj = {
+      name: newHabit.name,
+      frequency: "Daily",
+      icon: newHabit.emoji,
+      date: selectedDate,
+    };
+    addHabitMutation.mutate(newHabitObj, {
+      onError: (error) => {
+        error.response.json().then((data) => {
+          if (data.message === 'Habit already exists for this date') {
+            alert("Habit already exists for this date.");
+          }
+        });
+      },
+    });
+    setNewHabit({ name: "", emoji: "🧘" });
+    setShowAddForm(false);
+  }
+};
+
 
   const deleteHabit = (habitId) => {
     deleteHabitMutation.mutate(habitId);
