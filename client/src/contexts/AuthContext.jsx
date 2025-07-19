@@ -1,12 +1,12 @@
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect } from "react";
+import axios from "../axios";
 
 const AuthContext = createContext(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
@@ -16,41 +16,46 @@ export const AuthProvider = ({ children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    // Check if user was previously logged in
-    const savedAuth = localStorage.getItem('wellnest-auth');
-    if (savedAuth === 'true') {
+    const token = localStorage.getItem("token");
+    if (token) {
       setIsAuthenticated(true);
     }
   }, []);
 
   const login = async (email, password) => {
-    // Simple auth simulation - in real app, this would call an API
-    if (email && password) {
+    try {
+      const res = await axios.post("/api/auth/login", { email, password });
+      localStorage.setItem("token", res.data.token);
       setIsAuthenticated(true);
-      localStorage.setItem('wellnest-auth', 'true');
-      
-      // Request microphone permission for voice assistant
-      try {
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (error) {
-        console.log('Microphone permission denied or unavailable');
-      }
+    } catch (err) {
+      alert("Invalid credentials or server issue.");
+    }
+  };
+
+  const register = async (email, password) => {
+    try {
+      await axios.post("/api/auth/register", {
+        email,
+        password,
+        username: email.split("@")[0],
+      });
+      await login(email, password);
+    } catch (err) {
+      alert("Registration failed or user already exists.");
     }
   };
 
   const logout = () => {
     setIsLoggingOut(true);
-    
-    // Show logout message and redirect after 2 seconds
     setTimeout(() => {
       setIsAuthenticated(false);
       setIsLoggingOut(false);
-      localStorage.removeItem('wellnest-auth');
+      localStorage.removeItem("token");
     }, 2000);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, isLoggingOut }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, register, logout, isLoggingOut }}>
       {children}
     </AuthContext.Provider>
   );
