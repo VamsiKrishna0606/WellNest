@@ -47,13 +47,13 @@ const habitSchema = new mongoose.Schema(
       type: String,
       default: "🧘",
     },
-    isCompleted: {
-      type: Boolean,
-      default: false,
-    },
     completedAt: {
       type: Date,
       default: null,
+    },
+    completedDates: {
+      type: [Date],
+      default: [],
     },
   },
   { timestamps: true }

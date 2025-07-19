@@ -7,7 +7,7 @@ import { Textarea } from "./ui/textarea";
 const JournalWidget = () => {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toLocaleDateString("en-CA")
   );
   const [currentEntry, setCurrentEntry] = useState("");
   const [currentMoodRating, setCurrentMoodRating] = useState(3);
@@ -22,9 +22,7 @@ const JournalWidget = () => {
     },
   });
 
-  const selectedJournal = journals.find(
-    (j) => new Date(j.date).toISOString().split("T")[0] === selectedDate
-  );
+  const selectedJournal = journals.find((j) => j.date === selectedDate);
 
   const createOrUpdateJournal = useMutation({
     mutationFn: async (journalData) => {
@@ -47,7 +45,7 @@ const JournalWidget = () => {
     }
   };
 
-  const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
+  const isCurrentDate = selectedDate === new Date().toLocaleDateString("en-CA");
 
   return (
     <div className="glass-card p-4 sm:p-6 h-full flex flex-col">
@@ -68,6 +66,7 @@ const JournalWidget = () => {
               setIsEditing(false);
               setIsRatingMood(false);
             }}
+            max={new Date().toLocaleDateString("en-CA")} // Disables future dates
             className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
           />
         </div>

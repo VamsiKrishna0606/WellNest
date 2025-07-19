@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Calendar, X } from "lucide-react";
 import {
   Select,
@@ -30,7 +30,7 @@ const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const HabitTracker = () => {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toLocaleDateString("en-CA")
   );
   const [showAddForm, setShowAddForm] = useState(false);
   const [newHabit, setNewHabit] = useState({
@@ -43,7 +43,7 @@ const HabitTracker = () => {
     unit: "Minutes",
     time: "",
     reminders: false,
-    startDate: new Date().toISOString().split("T")[0],
+    startDate: new Date().toLocaleDateString("en-CA"),
     endDate: "",
   });
 
@@ -65,8 +65,8 @@ const HabitTracker = () => {
   });
 
   const updateHabit = useMutation({
-    mutationFn: async (id) => {
-      await axios.patch(`/api/habits/${id}`);
+    mutationFn: async ({ id, date }) => {
+      await axios.patch(`/api/habits/${id}`, { date });
     },
     onSuccess: () => queryClient.invalidateQueries(["habits"]),
   });
@@ -78,11 +78,23 @@ const HabitTracker = () => {
     onSuccess: () => queryClient.invalidateQueries(["habits"]),
   });
 
+  const isFutureDate = (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const inputDate = new Date(date);
+    inputDate.setHours(0, 0, 0, 0);
+    return inputDate > today;
+  };
+
   const getHabitsForDate = (date) =>
     habits.filter((h) => h.createdDate === date);
   const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
   const currentHabits = getHabitsForDate(selectedDate);
-  const completedCount = currentHabits.filter((h) => h.isCompleted).length;
+  const completedCount = currentHabits.filter((h) =>
+    h.completedDates?.some(
+      (d) => new Date().toLocaleDateString("en-CA") === selectedDate
+    )
+  ).length;
 
   const resetForm = () => {
     setNewHabit({
@@ -95,7 +107,7 @@ const HabitTracker = () => {
       unit: "Minutes",
       time: "",
       reminders: false,
-      startDate: new Date().toISOString().split("T")[0],
+      startDate: new Date().toLocaleDateString("en-CA"),
       endDate: "",
     });
   };
@@ -131,6 +143,7 @@ const HabitTracker = () => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
+            max={new Date().toLocaleDateString("en-CA")}
             className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
           />
         </div>
@@ -160,80 +173,85 @@ const HabitTracker = () => {
       )}
 
       <div className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
-        {currentHabits.map((habit) => (
-          <div
-            key={habit._id}
-            className="habit-item flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10"
-          >
-            <button
-              onClick={() => isCurrentDate && updateHabit.mutate(habit._id)}
-              disabled={!isCurrentDate}
-              className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg border-2 flex items-center justify-center ${
-                habit.isCompleted
-                  ? "bg-gradient-to-r from-indigo-500 to-blue-500 border-indigo-400 shadow-lg"
-                  : !isCurrentDate
-                  ? "border-slate-600 bg-white/5 cursor-not-allowed opacity-50"
-                  : "border-slate-400 bg-white/10 hover:border-indigo-400 hover:shadow-lg"
-              }`}
-            >
-              {habit.isCompleted && (
-                <svg
-                  className="w-3 h-3 text-white"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
-                </svg>
-              )}
-            </button>
+        {currentHabits.map((habit) => {
+          const isCompletedToday = habit.completedDates?.some(
+            (d) => new Date(d).toLocaleDateString("en-CA") === selectedDate
+          );
 
-            <span className="text-lg sm:text-xl mr-2 sm:mr-3">
-              {habit.emoji}
-            </span>
-            <span
-              className={`flex-1 font-medium ${
-                habit.isCompleted
-                  ? "text-slate-300 line-through opacity-75"
-                  : "text-slate-200"
-              }`}
-            >
-              {habit.name}
-            </span>
-
+          return (
             <div
-              className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
-                habit.isCompleted
-                  ? "bg-gradient-to-r from-indigo-500/20 to-blue-500/20 text-indigo-300 border border-indigo-400/30"
-                  : "bg-white/10 text-slate-400 border border-white/20"
-              }`}
+              key={habit._id}
+              className="habit-item flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl bg-white/5 border border-white/10"
             >
-              {habit.isCompleted ? "Done" : "Pending"}
-            </div>
+              <button
+                onClick={() =>
+                  !isFutureDate(selectedDate) &&
+                  updateHabit.mutate({
+                    id: habit._id,
+                    date: selectedDate,
+                  })
+                }
+                disabled={isFutureDate(selectedDate)}
+                className={`w-6 h-6 sm:w-7 sm:h-7 rounded-lg border-2 flex items-center justify-center ${
+                  isCompletedToday
+                    ? "bg-gradient-to-r from-indigo-500 to-blue-500 border-indigo-400 shadow-lg"
+                    : isFutureDate(selectedDate)
+                    ? "border-slate-600 bg-white/5 cursor-not-allowed opacity-50"
+                    : "border-slate-400 bg-white/10 hover:border-indigo-400 hover:shadow-lg"
+                }`}
+              >
+                {isCompletedToday && (
+                  <svg
+                    className="w-3 h-3 text-white"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+                  </svg>
+                )}
+              </button>
 
-            <button
-              onClick={() => deleteHabit.mutate(habit._id)}
-              className="ml-2 p-1 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
+              <span className="text-lg sm:text-xl mr-2 sm:mr-3">
+                {habit.emoji}
+              </span>
+              <span
+                className={`flex-1 font-medium ${
+                  isCompletedToday
+                    ? "text-slate-300 line-through opacity-75"
+                    : "text-slate-200"
+                }`}
+              >
+                {habit.name}
+              </span>
+
+              <div
+                className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
+                  isCompletedToday
+                    ? "bg-gradient-to-r from-indigo-500/20 to-blue-500/20 text-indigo-300 border border-indigo-400/30"
+                    : "bg-white/10 text-slate-400 border border-white/20"
+                }`}
+              >
+                {isCompletedToday ? "Done" : "Pending"}
+              </div>
+
+              <button
+                onClick={() => deleteHabit.mutate(habit._id)}
+                className="ml-2 p-1 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          );
+        })}
       </div>
 
       <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/20">
         {!showAddForm ? (
           <button
-            onClick={() => isCurrentDate && setShowAddForm(true)}
-            disabled={!isCurrentDate}
-            className={`w-full py-3 border-2 border-dashed rounded-xl ${
-              isCurrentDate
-                ? "border-slate-600 text-slate-400 hover:border-indigo-500 hover:text-indigo-400 hover:bg-white/5"
-                : "border-slate-700 text-slate-600 cursor-not-allowed opacity-50"
-            }`}
+            onClick={() => setShowAddForm(true)}
+            className="w-full py-3 border-2 border-dashed rounded-xl border-slate-600 text-slate-400 hover:border-indigo-500 hover:text-indigo-400 hover:bg-white/5"
           >
-            {isCurrentDate
-              ? "+ Add New Habit"
-              : "Add habits on current date only"}
+            + Add New Habit
           </button>
         ) : (
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-6">
@@ -385,14 +403,17 @@ const HabitTracker = () => {
                 onChange={(e) =>
                   setNewHabit({ ...newHabit, startDate: e.target.value })
                 }
+                max={new Date().toLocaleDateString("en-CA")}
                 className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
               />
+
               <input
                 type="date"
                 value={newHabit.endDate}
                 onChange={(e) =>
                   setNewHabit({ ...newHabit, endDate: e.target.value })
                 }
+                max={new Date().toLocaleDateString("en-CA")}
                 className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
               />
             </div>

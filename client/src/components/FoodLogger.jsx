@@ -6,7 +6,7 @@ import axios from "../axios";
 const FoodLogger = () => {
   const queryClient = useQueryClient();
   const [selectedDate, setSelectedDate] = useState(
-    new Date().toISOString().split("T")[0]
+    new Date().toLocaleDateString("en-CA")
   );
   const [showAddForm, setShowAddForm] = useState(false);
   const [newFood, setNewFood] = useState({
@@ -27,7 +27,7 @@ const FoodLogger = () => {
   });
 
   const foods = foodsData.filter(
-    (food) => new Date(food.date).toISOString().split("T")[0] === selectedDate
+    (food) => new Date(food.date).toLocaleDateString("en-CA") === selectedDate
   );
 
   const totalCalories = foods.reduce((sum, food) => sum + food.calories, 0);
@@ -70,7 +70,7 @@ const FoodLogger = () => {
     setShowAddForm(false);
   };
 
-  const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
+  const isCurrentDate = selectedDate === new Date().toLocaleDateString("en-CA");
 
   const groupedFoods = foods.reduce((acc, food) => {
     if (!acc[food.mealType]) acc[food.mealType] = [];
@@ -100,6 +100,7 @@ const FoodLogger = () => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
+            max={new Date().toLocaleDateString("en-CA")} // This blocks future dates
             className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
           />
         </div>
@@ -108,16 +109,11 @@ const FoodLogger = () => {
       <div className="mb-6 p-4 bg-white/5 rounded-xl border border-white/10">
         {!showAddForm ? (
           <button
-            onClick={() => isCurrentDate && setShowAddForm(true)}
-            disabled={!isCurrentDate}
-            className={`flex items-center justify-center w-full py-3 border-2 border-dashed rounded-xl ${
-              isCurrentDate
-                ? "border-slate-600 text-slate-400 hover:border-indigo-500 hover:text-indigo-400 hover:bg-white/5"
-                : "border-slate-700 text-slate-600 cursor-not-allowed opacity-50"
-            }`}
+            onClick={() => setShowAddForm(true)}
+            className="flex items-center justify-center w-full py-3 border-2 border-dashed rounded-xl border-slate-600 text-slate-400 hover:border-indigo-500 hover:text-indigo-400 hover:bg-white/5"
           >
             <Plus className="w-4 h-4 mr-2" />
-            {isCurrentDate ? "Log Food" : "Log food on current date only"}
+            Log Food
           </button>
         ) : (
           <div className="space-y-3">
@@ -126,7 +122,7 @@ const FoodLogger = () => {
               value={newFood.name}
               onChange={(e) => setNewFood({ ...newFood, name: e.target.value })}
               placeholder="Food name..."
-              disabled={!isCurrentDate}
+              disabled={false}
               className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white"
             />
             <div className="flex space-x-3">
@@ -137,7 +133,7 @@ const FoodLogger = () => {
                   setNewFood({ ...newFood, calories: e.target.value })
                 }
                 placeholder="Calories"
-                disabled={!isCurrentDate}
+                disabled={false}
                 className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white"
               />
               <select
@@ -145,7 +141,7 @@ const FoodLogger = () => {
                 onChange={(e) =>
                   setNewFood({ ...newFood, mealType: e.target.value })
                 }
-                disabled={!isCurrentDate}
+                disabled={false}
                 className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-slate-800"
               >
                 <option value="Breakfast">Breakfast</option>
@@ -168,7 +164,7 @@ const FoodLogger = () => {
                     setNewFood({ ...newFood, protein: e.target.value })
                   }
                   placeholder="Protein (g)"
-                  disabled={!isCurrentDate}
+                  disabled={false}
                   className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
                 />
                 <input
@@ -179,7 +175,7 @@ const FoodLogger = () => {
                     setNewFood({ ...newFood, carbs: e.target.value })
                   }
                   placeholder="Carbs (g)"
-                  disabled={!isCurrentDate}
+                  disabled={false}
                   className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
                 />
                 <input
@@ -190,7 +186,7 @@ const FoodLogger = () => {
                     setNewFood({ ...newFood, fats: e.target.value })
                   }
                   placeholder="Fats (g)"
-                  disabled={!isCurrentDate}
+                  disabled={false}
                   className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
                 />
               </div>

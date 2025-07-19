@@ -53,12 +53,26 @@ export const getUserHabits = async (req, res) => {
 export const updateHabitCompletion = async (req, res) => {
   try {
     const habitId = req.params.id;
+    const { date } = req.body;
     const habit = await Habit.findOne({ _id: habitId, userId: req.user.id });
 
     if (!habit) return res.status(404).json({ error: "Habit not found." });
+    if (!date) return res.status(400).json({ error: "Date is required." });
 
-    habit.isCompleted = !habit.isCompleted;
-    habit.completedAt = habit.isCompleted ? new Date() : null;
+    const dateISO = new Date(date).toISOString().split("T")[0];
+
+    const alreadyCompleted = habit.completedDates.some(
+      (d) => new Date(d).toISOString().split("T")[0] === dateISO
+    );
+
+    if (!alreadyCompleted) {
+      habit.completedDates.push(new Date(date));
+    } else {
+      // If date exists, remove it (toggle off)
+      habit.completedDates = habit.completedDates.filter(
+        (d) => new Date(d).toISOString().split("T")[0] !== dateISO
+      );
+    }
 
     await habit.save();
     res.json(habit);

@@ -1,54 +1,99 @@
-import FoodLog from "../models/FoodLog.js";
 import Habit from "../models/Habit.js";
-import Journal from "../models/Journal.js";
-import mongoose from "mongoose";
+import FoodLog from "../models/FoodLog.js";
 
-const calculateJournalStreak = (journalDates) => {
-  const sortedDates = journalDates.map(date => new Date(date.date)).sort((a, b) => b - a);
-  let streak = 0;
-  let currentDate = new Date();
-  currentDate.setHours(0, 0, 0, 0);
-
-  for (const date of sortedDates) {
-    const journalDate = new Date(date.date);
-    journalDate.setHours(0, 0, 0, 0);
-
-    if (currentDate.getTime() === journalDate.getTime()) {
-      streak++;
-      currentDate.setDate(currentDate.getDate() - 1);
-    } else if (currentDate.getTime() - journalDate.getTime() === 86400000) {
-      streak++;
-      currentDate.setDate(currentDate.getDate() - 1);
-    } else {
-      break;
-    }
-  }
-
-  return streak;
-};
-
-export const getQuickStats = async (req, res) => {
+export const getStats = async (req, res) => {
   try {
     const userId = req.user.id;
+    const today = new Date();
+    const todayIST = new Date().toLocaleDateString("en-CA");
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString().split("T")[0];
 
-    const totalCalories = await FoodLog.aggregate([
-      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
-      { $group: { _id: null, total: { $sum: "$calories" } } },
-    ]);
+    // --------- Fetch Habits & Food Logs ---------
+    const habits = (await Habit.find({ userId })) || [];
+    const foodLogs =
+      (await FoodLog.find({ userId, date: { $gte: today } })) || [];
 
-    const calories = totalCalories[0]?.total || 0;
-    const habitCount = await Habit.countDocuments({ userId });
-    const journalCount = await Journal.countDocuments({ userId });
+    // --------- Streak Calculation ---------
+    const completedDatesSet = new Set();
+    habits.forEach((habit) => {
+      habit.completedDates.forEach((date) => {
+        completedDatesSet.add(new Date(date).toISOString().split("T")[0]);
+      });
+    });
 
-    const journalDates = await Journal.find({ userId }, "date");
+    const datesArray = Array.from(completedDatesSet).sort();
+    let streakCount = 0;
+    for (let i = datesArray.length - 1; i >= 0; i--) {
+      const dateStr = datesArray[i];
+      const dateObj = new Date(dateStr);
+      dateObj.setHours(0, 0, 0, 0);
+      const daysAgo = Math.floor((today - dateObj) / (1000 * 60 * 60 * 24));
+      if (daysAgo === streakCount) {
+        streakCount++;
+      } else {
+        break;
+      }
+    }
 
-    const streak = calculateJournalStreak(journalDates);
+    // --------- Calories Today ---------
+    const caloriesToday = foodLogs.reduce(
+      (total, log) => total + (log.calories || 0),
+      0
+    );
 
+    // --------- Weekly Goal % ---------
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+
+    let weeklyCompleted = 0;
+    let weeklyTotal = 0;
+
+    habits.forEach((habit) => {
+      const start = new Date(habit.startDate);
+      const end = habit.endDate ? new Date(habit.endDate) : null;
+
+      // Only habits that are active this week
+      for (
+        let d = new Date(startOfWeek);
+        d <= today;
+        d.setDate(d.getDate() + 1)
+      ) {
+        const dISO = d.toISOString().split("T")[0];
+        if (start <= d && (!end || end >= d)) {
+          weeklyTotal++;
+          if (
+            habit.completedDates.some(
+              (date) => date.toISOString().split("T")[0] === dISO
+            )
+          ) {
+            weeklyCompleted++;
+          }
+        }
+      }
+    });
+
+    const weeklyGoalPercent = weeklyTotal
+      ? Math.round((weeklyCompleted / weeklyTotal) * 100)
+      : 0;
+
+    // --------- Habits Hit Today ---------
+    const todayHabits = habits.filter((h) => {
+      const start = new Date(h.startDate).toLocaleDateString("en-CA");
+      return start === todayIST;
+    });
+
+    const todayCompleted = todayHabits.filter((h) =>
+      h.completedDates.some(
+        (date) => new Date(date).toLocaleDateString("en-CA") === todayIST
+      )
+    ).length;
+    // --------- Final Response ---------
     res.json({
-      totalCalories: calories,
-      totalHabits: habitCount,
-      totalJournals: journalCount,
-      journalStreak: streak,
+      streak: streakCount,
+      caloriesToday,
+      weeklyGoalPercent,
+      habitsHit: `${todayCompleted} / ${todayHabits.length}`,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

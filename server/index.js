@@ -22,7 +22,7 @@ app.use("/api/food", foodRoutes);
 app.use("/api/journal", journalRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/goals", goalsRoutes);
-app.use("/api/goals", goalsRoutes);
+app.use("/api/stats", statsRoutes);
 
 mongoose
   .connect(process.env.MONGO_URI)
