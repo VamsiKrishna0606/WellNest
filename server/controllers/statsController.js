@@ -1,26 +1,56 @@
-import Habit from "../models/Habit.js";
 import FoodLog from "../models/FoodLog.js";
+import Habit from "../models/Habit.js";
+import Journal from "../models/Journal.js";
+import mongoose from "mongoose";
+
+const calculateJournalStreak = (journalDates) => {
+  const sortedDates = journalDates.map(date => new Date(date.date)).sort((a, b) => b - a);
+  let streak = 0;
+  let currentDate = new Date();
+  currentDate.setHours(0, 0, 0, 0);
+
+  for (const date of sortedDates) {
+    const journalDate = new Date(date.date);
+    journalDate.setHours(0, 0, 0, 0);
+
+    if (currentDate.getTime() === journalDate.getTime()) {
+      streak++;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else if (currentDate.getTime() - journalDate.getTime() === 86400000) {
+      streak++;
+      currentDate.setDate(currentDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+};
 
 export const getQuickStats = async (req, res) => {
   try {
-    const today = new Date().toISOString().split("T")[0];
-    const habitsToday = await Habit.find({ date: today });
-    const caloriesToday = await FoodLog.find({ date: today });
+    const userId = req.user.id;
 
-    const completedCount = habitsToday.filter((h) => h.completed).length;
-    const totalHabits = habitsToday.length;
-    const weeklyCompletion = totalHabits ? (completedCount / totalHabits) * 100 : 0;
+    const totalCalories = await FoodLog.aggregate([
+      { $match: { userId: new mongoose.Types.ObjectId(userId) } },
+      { $group: { _id: null, total: { $sum: "$calories" } } },
+    ]);
 
-    const calories = caloriesToday.reduce((sum, f) => sum + f.calories, 0);
-    const activeGoals = habitsToday.filter((h) => !h.completed).length;
+    const calories = totalCalories[0]?.total || 0;
+    const habitCount = await Habit.countDocuments({ userId });
+    const journalCount = await Journal.countDocuments({ userId });
 
-    res.status(200).json({
-      dayStreak: 7, // TODO: If you want, I can show how to calculate streak properly later.
-      weeklyCompletion: Math.round(weeklyCompletion),
-      calories,
-      activeGoals,
+    const journalDates = await Journal.find({ userId }, "date");
+
+    const streak = calculateJournalStreak(journalDates);
+
+    res.json({
+      totalCalories: calories,
+      totalHabits: habitCount,
+      totalJournals: journalCount,
+      journalStreak: streak,
     });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch quick stats", error });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

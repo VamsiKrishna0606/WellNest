@@ -1,10 +1,11 @@
-import express from 'express';
-import { getAllJournals, createJournal, deleteJournal } from '../controllers/journalController.js';
+import express from "express";
+import { createOrUpdateJournal, getUserJournals, getJournalByDate } from "../controllers/journalController.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get('/', getAllJournals);
-router.post('/', createJournal);
-router.delete('/:id', deleteJournal);
+router.post("/", verifyToken, createOrUpdateJournal);
+router.get("/", verifyToken, getUserJournals);
+router.get("/:date", verifyToken, getJournalByDate);
 
 export default router;

@@ -1,27 +1,47 @@
 import mongoose from "mongoose";
 
-const HabitSchema = new mongoose.Schema({
+const habitSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
   name: {
     type: String,
     required: true,
   },
   frequency: {
+    type: String, // "daily", "weekly", "monthly"
+    default: "daily",
+  },
+  times: {
+    type: Number,
+    default: 1,
+  },
+  unit: {
     type: String,
-    required: true,
+    default: "minutes",
   },
-  icon: {
-    type: String,
-    required: false,
+  reminderTime: {
+    type: String, // "HH:mm"
+    default: null,
   },
-  date: {
-    type: String, // ✅ Store dd-mm-yyyy as string, not Date type
-    required: true,
-  },
-  completed: {
+  enableReminder: {
     type: Boolean,
     default: false,
   },
-});
+  startDate: {
+    type: Date,
+    default: Date.now,
+  },
+  endDate: {
+    type: Date,
+    default: null,
+  },
+  completedDates: {
+    type: [Date],
+    default: [],
+  },
+}, { timestamps: true });
 
-const Habit = mongoose.model("Habit", HabitSchema);
-export default Habit;
+export default mongoose.model("Habit", habitSchema);

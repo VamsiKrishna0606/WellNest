@@ -1,16 +1,14 @@
 import express from "express";
-import {
-  getAllHabits,
-  createHabit,
-  deleteHabit,
-  updateHabitCompletion,
-} from "../controllers/habitController.js";
+import { createHabit, getUserHabits, deleteHabit ,  updateHabitCompletion  } from "../controllers/habitController.js";
+import { verifyToken } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-router.get("/", getAllHabits);
-router.post("/", createHabit);
-router.delete("/:id", deleteHabit);
-router.patch("/:id", updateHabitCompletion);
+router.post("/", verifyToken, createHabit);
+router.get("/", verifyToken, getUserHabits);
+router.delete("/:id", verifyToken, deleteHabit);
+router.patch("/:id", verifyToken, updateHabitCompletion);
+
+
 
 export default router;
