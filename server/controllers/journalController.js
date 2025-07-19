@@ -1,34 +1,55 @@
-import Journal from '../models/Journal.js';
+import Journal from "../models/Journal.js";
 
-export const getAllJournals = async (req, res) => {
+export const createOrUpdateJournal = async (req, res) => {
   try {
-    const journals = await Journal.find();
-    res.status(200).json(journals);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to fetch journals', error });
-  }
-};
+    const { date, entry, moodRating } = req.body;
 
-export const createJournal = async (req, res) => {
-  try {
-    const { title, content, date } = req.body;
-    const newJournal = new Journal({ title, content, date });
-    await newJournal.save();
-    res.status(201).json(newJournal);
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to create journal', error });
-  }
-};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const givenDate = new Date(date);
+    givenDate.setHours(0, 0, 0, 0);
 
-export const deleteJournal = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deleted = await Journal.findByIdAndDelete(id);
-    if (!deleted) {
-      return res.status(404).json({ message: 'Journal not found' });
+    if (givenDate > today) {
+      return res.status(400).json({ error: "Cannot create or update journal for future dates." });
     }
-    res.status(200).json({ message: 'Journal deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Failed to delete journal', error });
+
+    const existing = await Journal.findOne({ userId: req.user.id, date });
+
+    if (existing) {
+      existing.entry = entry;
+      existing.moodRating = moodRating;
+      existing.timestamp = new Date();
+      await existing.save();
+      return res.json(existing);
+    }
+
+    const newJournal = await Journal.create({
+      userId: req.user.id,
+      date,
+      entry,
+      moodRating,
+    });
+    res.status(201).json(newJournal);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getUserJournals = async (req, res) => {
+  try {
+    const journals = await Journal.find({ userId: req.user.id }).sort({ date: -1 });
+    res.json(journals);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getJournalByDate = async (req, res) => {
+  try {
+    const journal = await Journal.findOne({ userId: req.user.id, date: req.params.date });
+    if (!journal) return res.status(404).json({ message: "No journal entry for this date." });
+    res.json(journal);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

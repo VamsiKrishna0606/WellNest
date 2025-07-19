@@ -1,42 +1,45 @@
 import FoodLog from "../models/FoodLog.js";
 
-export const getAllFoodLogs = async (req, res) => {
+export const createFoodLog = async (req, res) => {
   try {
-    const foodLogs = await FoodLog.find();
-    res.status(200).json(foodLogs);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch food logs", error });
+    const { name, calories, protein, carbs, fats, mealType, date } = req.body;
+
+    if (!name || typeof name !== "string" || calories < 0 || protein < 0 || carbs < 0 || fats < 0) {
+      return res.status(400).json({
+        error: "Invalid input: name is required, and numbers cannot be negative."
+      });
+    }
+
+    const foodLog = await FoodLog.create({
+      userId: req.user.id,
+      name,
+      calories,
+      protein,
+      carbs,
+      fats,
+      mealType,
+      date,
+    });
+    res.status(201).json(foodLog);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
-export const createFoodLog = async (req, res) => {
+export const getUserFoodLogs = async (req, res) => {
   try {
-    const { meal, calories, date, time, category } = req.body;
-
-    const newFoodLog = new FoodLog({
-      meal,
-      calories,
-      date,
-      time,
-      category,
-    });
-
-    await newFoodLog.save();
-    res.status(201).json(newFoodLog);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to create food log", error });
+    const foodLogs = await FoodLog.find({ userId: req.user.id }).sort({ date: -1 });
+    res.json(foodLogs);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
 export const deleteFoodLog = async (req, res) => {
   try {
-    const { id } = req.params;
-    const deleted = await FoodLog.findByIdAndDelete(id);
-    if (!deleted) {
-      return res.status(404).json({ message: "Food log not found" });
-    }
-    res.status(200).json({ message: "Food log deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to delete food log", error });
+    await FoodLog.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+    res.json({ message: "Food log deleted." });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };

@@ -1,61 +1,66 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { Calendar, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Calendar, Edit3, Save } from "lucide-react";
+import { Textarea } from "./ui/textarea";
 
 const JournalWidget = () => {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0]
   );
-  const [newEntry, setNewEntry] = useState("");
+  const [journals, setJournals] = useState({});
+  const [currentEntry, setCurrentEntry] = useState("");
+  const [currentMoodRating, setCurrentMoodRating] = useState(3);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isRatingMood, setIsRatingMood] = useState(false);
 
-  const { data: journals, refetch, isLoading } = useQuery({
-    queryKey: ["journals"],
-    queryFn: () =>
-      fetch("http://localhost:5000/api/journals").then((res) => res.json()),
-  });
+  useEffect(() => {
+    const savedJournals = localStorage.getItem("wellnest-journals");
+    if (savedJournals) {
+      setJournals(JSON.parse(savedJournals));
+    }
+  }, []);
 
-  const addJournalMutation = useMutation({
-    mutationFn: (journalData) =>
-      fetch("http://localhost:5000/api/journals", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(journalData),
-      }),
-    onSuccess: () => refetch(),
-  });
+  useEffect(() => {
+    const journalData = journals[selectedDate];
+    if (journalData && typeof journalData === "object") {
+      setCurrentEntry(journalData.entry || "");
+      setCurrentMoodRating(journalData.moodRating || 3);
+    } else {
+      setCurrentEntry(journalData || "");
+      setCurrentMoodRating(3);
+    }
+    setIsEditing(false);
+    setIsRatingMood(false);
+  }, [selectedDate, journals]);
 
-  const deleteJournalMutation = useMutation({
-    mutationFn: (id) =>
-      fetch(`http://localhost:5000/api/journals/${id}`, {
-        method: "DELETE",
-      }),
-    onSuccess: () => refetch(),
-  });
+  useEffect(() => {
+    localStorage.setItem("wellnest-journals", JSON.stringify(journals));
+  }, [journals]);
 
-  const currentJournals =
-    journals?.filter((j) => j.date === selectedDate) || [];
-  const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
-
-  const addJournal = () => {
-    if (!newEntry.trim()) return;
-    addJournalMutation.mutate({
-      title: "Daily Note",
-      content: newEntry,
-      date: selectedDate,
-    });
-    setNewEntry("");
-  };
-
-  const deleteJournal = (id) => {
-    deleteJournalMutation.mutate(id);
+  const saveEntry = () => {
+    if (!isRatingMood) {
+      setIsRatingMood(true);
+    } else {
+      setJournals((prev) => ({
+        ...prev,
+        [selectedDate]: {
+          entry: currentEntry,
+          moodRating: currentMoodRating,
+          timestamp: new Date().toISOString(),
+        },
+      }));
+      setIsEditing(false);
+      setIsRatingMood(false);
+    }
   };
 
   return (
     <div className="glass-card hover:shadow-indigo-500/20 transition-smooth slide-in p-4 sm:p-6 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold text-white gradient-text-light">
-          Journal
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+        <h2 className="text-xl sm:text-2xl font-semibold text-white gradient-text-light flex items-center">
+          <Edit3 className="w-5 h-5 mr-2 text-indigo-400" />
+          Journal Entry
         </h2>
+
         <div className="flex items-center space-x-2">
           <Calendar className="w-4 h-4 text-indigo-400" />
           <input
@@ -67,45 +72,126 @@ const JournalWidget = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 mb-4">
-        <textarea
-          value={newEntry}
-          onChange={(e) => setNewEntry(e.target.value)}
-          placeholder="Write something for today..."
-          className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white resize-none"
-          rows="4"
-        />
-        <button
-          onClick={addJournal}
-          disabled={!isCurrentDate}
-          className="py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg"
-        >
-          {isCurrentDate ? "Add Entry" : "Can only add on current date"}
-        </button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto space-y-2">
-        {isLoading ? (
-          <p className="text-slate-400">Loading...</p>
-        ) : currentJournals.length === 0 ? (
-          <div className="text-center text-slate-400">
-            No entries for {selectedDate}
+      <div className="space-y-4 flex-1 flex flex-col min-h-0">
+        {!isEditing && currentEntry ? (
+          <div className="p-4 bg-white/5 rounded-xl border border-white/10 flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-slate-400">Mood Rating:</span>
+              <div className="flex items-center space-x-1">
+                {[1, 2, 3, 4, 5].map((rating) => (
+                  <div
+                    key={rating}
+                    className={`w-3 h-3 rounded-full ${
+                      rating <= currentMoodRating
+                        ? "bg-indigo-400"
+                        : "bg-slate-600"
+                    }`}
+                  />
+                ))}
+                <span className="ml-2 text-indigo-400 text-sm">
+                  {currentMoodRating}/5
+                </span>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-600 scrollbar-track-transparent">
+              <p className="text-slate-200 whitespace-pre-wrap leading-relaxed break-words">
+                {currentEntry}
+              </p>
+            </div>
+            <button
+              onClick={() => setIsEditing(true)}
+              className="mt-3 flex items-center space-x-2 text-indigo-400 hover:text-indigo-300 transition-colors text-sm self-start flex-shrink-0"
+            >
+              <Edit3 className="w-4 h-4" />
+              <span>Edit Entry</span>
+            </button>
           </div>
         ) : (
-          currentJournals.map((j) => (
-            <div
-              key={j._id}
-              className="bg-white/5 rounded-lg border border-white/10 p-3 flex justify-between items-start"
-            >
-              <p className="text-slate-200">{j.content}</p>
-              <button
-                onClick={() => deleteJournal(j._id)}
-                className="ml-2 p-1 rounded-lg text-red-400 hover:text-red-300"
-              >
-                <X className="w-3 h-3" />
-              </button>
+          <div className="space-y-3 flex-1 flex flex-col min-h-0">
+            {isRatingMood && (
+              <div className="space-y-2">
+                <label className="text-sm text-slate-300 font-medium">
+                  How did today feel for you?
+                </label>
+                <div className="flex items-center space-x-2">
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      onClick={() => setCurrentMoodRating(rating)}
+                      className={`w-8 h-8 rounded-full transition-smooth ${
+                        rating <= currentMoodRating
+                          ? "bg-indigo-500 hover:bg-indigo-400"
+                          : "bg-slate-600 hover:bg-slate-500"
+                      }`}
+                    />
+                  ))}
+                  <span className="ml-2 text-slate-300 text-sm">
+                    {currentMoodRating}/5
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!isRatingMood && (
+              <div className="flex-1 flex flex-col">
+                <Textarea
+                  value={currentEntry}
+                  onChange={(e) => setCurrentEntry(e.target.value)}
+                  placeholder="Write your thoughts, reflections, or summary of your day here..."
+                  className="flex-1 min-h-[200px] bg-white/10 border border-white/20 text-white placeholder-slate-400 focus:border-indigo-500 focus:ring-indigo-500/30 backdrop-blur-sm resize-none text-base leading-relaxed"
+                  style={{ minHeight: "200px" }}
+                />
+              </div>
+            )}
+
+            <div className="flex space-x-3 flex-shrink-0">
+              {!isRatingMood ? (
+                <button
+                  onClick={saveEntry}
+                  disabled={!currentEntry.trim()}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-lg hover:from-indigo-700 hover:to-blue-700 transition-bounce shadow-lg shadow-indigo-500/30 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  <span>Write Your Day</span>
+                </button>
+              ) : (
+                <button
+                  onClick={saveEntry}
+                  className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 transition-bounce shadow-lg shadow-green-500/30 text-sm"
+                >
+                  <Save className="w-4 h-4" />
+                  <span>Save Entry</span>
+                </button>
+              )}
+
+              {(isEditing || isRatingMood) && (
+                <button
+                  onClick={() => {
+                    const journalData = journals[selectedDate];
+                    if (journalData && typeof journalData === "object") {
+                      setCurrentEntry(journalData.entry || "");
+                      setCurrentMoodRating(journalData.moodRating || 3);
+                    } else {
+                      setCurrentEntry(journalData || "");
+                      setCurrentMoodRating(3);
+                    }
+                    setIsEditing(false);
+                    setIsRatingMood(false);
+                  }}
+                  className="px-4 py-2 bg-white/10 text-slate-300 rounded-lg hover:bg-white/20 transition-smooth backdrop-blur-sm border border-white/20 text-sm"
+                >
+                  Cancel
+                </button>
+              )}
             </div>
-          ))
+          </div>
+        )}
+
+        {!currentEntry && !isEditing && (
+          <div className="text-center flex-1 flex flex-col justify-center">
+            <p className="text-slate-400">No journal entry for this date</p>
+          </div>
         )}
       </div>
     </div>

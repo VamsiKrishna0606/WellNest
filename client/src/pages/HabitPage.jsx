@@ -1,31 +1,32 @@
-import { useQuery } from "@tanstack/react-query";
+
 import Navigation from "../components/Navigation";
+import HabitTracker from "../components/HabitTracker";
 import ChatAssistant from "../components/ChatAssistant";
 import VoiceAssistant from "../components/VoiceAssistant";
-import HabitTracker from "../components/HabitTracker";
 
 const HabitPage = () => {
-  const { data: habits, isLoading } = useQuery({
-    queryKey: ["habits"],
-    queryFn: () =>
-      fetch("http://localhost:5000/api/habits").then((res) => res.json()),
-  });
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
       <Navigation />
+      
+      {/* Floating Voice Assistant */}
       <div className="fixed bottom-6 right-28 z-40">
         <VoiceAssistant />
       </div>
+      
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
-        <h1 className="text-4xl sm:text-5xl font-bold text-slate-100 mb-6">Habits</h1>
-
-        {isLoading ? (
-          <p className="text-white">Loading habits...</p>
-        ) : (
-          <HabitTracker apiHabits={habits} />
-        )}
+        <div className="text-center mb-6 sm:mb-8">
+          <h1 className="text-4xl sm:text-5xl font-bold text-slate-100 mb-2 bg-gradient-to-r from-indigo-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+            Habit Tracker
+          </h1>
+          <p className="text-lg sm:text-xl text-slate-400">Build consistency, one day at a time</p>
+        </div>
+        
+        <div className="max-w-4xl mx-auto">
+          <HabitTracker />
+        </div>
       </div>
+      
       <ChatAssistant />
     </div>
   );
