@@ -9,13 +9,7 @@ const Navigation = () => {
   const [showGoalsModal, setShowGoalsModal] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
-
-  const user = {
-    name: "John Doe",
-    email: "john@example.com",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face&auto=format",
-  };
+  const { logout, user } = useAuth();
 
   const getCurrentTab = () => {
     const path = location.pathname;
@@ -84,13 +78,13 @@ const Navigation = () => {
                 className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors"
               >
                 <img
-                  src={user.avatar}
-                  alt={user.name}
+                  src={"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face&auto=format"}
+                  alt={"User"}
                   className="w-8 h-8 rounded-full border-2 border-indigo-400 shadow-lg"
                 />
                 <div className="text-left hidden lg:block">
-                  <div className="text-sm font-medium text-slate-200">{user.name}</div>
-                  <div className="text-xs text-slate-400">{user.email}</div>
+                  <div className="text-sm font-medium text-slate-200">{user?.fullName || "User Name"}</div>
+                  <div className="text-xs text-slate-400">{user?.email || "email@example.com"}</div>
                 </div>
                 <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -100,8 +94,8 @@ const Navigation = () => {
               {showUserMenu && (
                 <div className="absolute right-0 mt-2 w-48 bg-slate-800/95 backdrop-blur-xl border border-slate-700/30 rounded-xl shadow-2xl shadow-black/20 z-50">
                   <div className="p-3 border-b border-slate-700/30">
-                    <div className="text-sm font-medium text-slate-200">{user.name}</div>
-                    <div className="text-xs text-slate-400">{user.email}</div>
+                    <div className="text-sm font-medium text-slate-200">{user?.fullName || "User Name"}</div>
+                    <div className="text-xs text-slate-400">{user?.email || "email@example.com"}</div>
                   </div>
                   <div className="py-2">
                     <button
@@ -146,13 +140,13 @@ const Navigation = () => {
           <div className="md:hidden py-4 border-t border-slate-700/30">
             <div className="flex items-center space-x-3 px-4 py-3 mb-4 bg-slate-800/30 rounded-lg">
               <img
-                src={user.avatar}
-                alt={user.name}
+                src={"https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face&auto=format"}
+                alt={"User"}
                 className="w-10 h-10 rounded-full border-2 border-indigo-400"
               />
               <div>
-                <div className="text-sm font-medium text-slate-200">{user.name}</div>
-                <div className="text-xs text-slate-400">{user.email}</div>
+                <div className="text-sm font-medium text-slate-200">{user?.fullName || "User Name"}</div>
+                <div className="text-xs text-slate-400">{user?.email || "email@example.com"}</div>
               </div>
             </div>
 

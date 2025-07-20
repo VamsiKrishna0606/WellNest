@@ -14,11 +14,18 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       setIsAuthenticated(true);
+      axios
+        .get("/api/auth/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((res) => setUser(res.data))
+        .catch(() => setIsAuthenticated(false));
     }
   }, []);
 
@@ -27,6 +34,10 @@ export const AuthProvider = ({ children }) => {
       const res = await axios.post("/api/auth/login", { email, password });
       localStorage.setItem("token", res.data.token);
       setIsAuthenticated(true);
+      const profileRes = await axios.get("/api/auth/profile", {
+        headers: { Authorization: `Bearer ${res.data.token}` },
+      });
+      setUser(profileRes.data);
     } catch (err) {
       alert("Invalid credentials or server issue.");
     }
@@ -51,11 +62,12 @@ export const AuthProvider = ({ children }) => {
       setIsAuthenticated(false);
       setIsLoggingOut(false);
       localStorage.removeItem("token");
+      setUser(null);
     }, 2000);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, register, logout, isLoggingOut }}>
+    <AuthContext.Provider value={{ isAuthenticated, login, register, logout, isLoggingOut, user }}>
       {children}
     </AuthContext.Provider>
   );

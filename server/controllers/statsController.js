@@ -1,20 +1,60 @@
 import Habit from "../models/Habit.js";
 import FoodLog from "../models/FoodLog.js";
+import UserGoals from "../models/UserGoals.js";
 
 export const getStats = async (req, res) => {
   try {
     const userId = req.user.id;
     const today = new Date();
-    const todayIST = new Date().toLocaleDateString("en-CA");
     today.setHours(0, 0, 0, 0);
-    const todayISO = today.toISOString().split("T")[0];
 
-    // --------- Fetch Habits & Food Logs ---------
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+
+    const todayISO = today.toLocaleDateString("en-CA");
+
+    // ✅ Fetch Data
     const habits = (await Habit.find({ userId })) || [];
-    const foodLogs =
-      (await FoodLog.find({ userId, date: { $gte: today } })) || [];
+    const userGoals = await UserGoals.findOne({ userId });
+    const dailyCaloriesGoal = userGoals?.calories || 2000;
 
-    // --------- Streak Calculation ---------
+    // ✅ Filter only habits created today, EXACTLY like your UI
+    const todayHabits = habits.filter((h) => h.createdDate === todayISO);
+
+    const totalHabitsToday = todayHabits.length;
+
+    const completedHabitsToday = todayHabits.filter((h) =>
+      h.completedDates.some(
+        (date) =>
+          new Date(date).toLocaleDateString("en-CA") === todayISO
+      )
+    ).length;
+
+    const habitsPercent = totalHabitsToday
+      ? Math.round((completedHabitsToday / totalHabitsToday) * 100)
+      : 0;
+
+    // ✅ Today's Calories
+    const foodLogsToday = await FoodLog.find({
+      userId,
+      date: { $gte: today, $lt: tomorrow },
+    });
+
+    const caloriesToday = foodLogsToday.reduce(
+      (total, log) => total + (log.calories || 0),
+      0
+    );
+
+    const caloriesPercent = dailyCaloriesGoal
+      ? Math.round(
+          (Math.min(caloriesToday, dailyCaloriesGoal) / dailyCaloriesGoal) * 100
+        )
+      : 0;
+
+    // ✅ Today's Goal % — avg of habits and calories
+    const todayGoalPercent = Math.round((habitsPercent + caloriesPercent) / 2);
+
+    // ✅ Streak (leave this as is)
     const completedDatesSet = new Set();
     habits.forEach((habit) => {
       habit.completedDates.forEach((date) => {
@@ -36,64 +76,12 @@ export const getStats = async (req, res) => {
       }
     }
 
-    // --------- Calories Today ---------
-    const caloriesToday = foodLogs.reduce(
-      (total, log) => total + (log.calories || 0),
-      0
-    );
-
-    // --------- Weekly Goal % ---------
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay());
-
-    let weeklyCompleted = 0;
-    let weeklyTotal = 0;
-
-    habits.forEach((habit) => {
-      const start = new Date(habit.startDate);
-      const end = habit.endDate ? new Date(habit.endDate) : null;
-
-      for (
-        let d = new Date(startOfWeek);
-        d <= today;
-        d.setDate(d.getDate() + 1)
-      ) {
-        const dISO = d.toISOString().split("T")[0];
-        if (start <= d && (!end || end >= d)) {
-          weeklyTotal++;
-          if (
-            habit.completedDates.some(
-              (date) => date.toISOString().split("T")[0] === dISO
-            )
-          ) {
-            weeklyCompleted++;
-          }
-        }
-      }
-    });
-
-    const weeklyGoalPercent = weeklyTotal
-      ? Math.round((weeklyCompleted / weeklyTotal) * 100)
-      : 0;
-
-    // --------- Habits Hit Today (ONLY CREATED TODAY) ---------
-    // --------- Habits Hit Today ---------
-// --------- Habits Hit Today (Only Today's Created Habits) ---------
-const todayHabits = habits.filter((h) => h.createdDate === todayIST);
-
-const todayCompleted = todayHabits.filter((h) =>
-  h.completedDates.some(
-    (date) => new Date(date).toLocaleDateString("en-CA") === todayIST
-  )
-).length;
-
-
-    // --------- Final Response ---------
+    // ✅ Response
     res.json({
       streak: streakCount,
       caloriesToday,
-      weeklyGoalPercent,
-      habitsHit: `${todayCompleted} / ${todayHabits.length}`,
+      todayGoalPercent,
+      habitsHit: `${completedHabitsToday} / ${totalHabitsToday}`,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

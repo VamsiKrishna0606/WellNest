@@ -9,6 +9,7 @@ import foodRoutes from "./routes/foodRoutes.js";
 import journalRoutes from "./routes/journalRoutes.js";
 import statsRoutes from "./routes/statsRoutes.js";
 import goalsRoutes from "./routes/goalsRoutes.js";
+import analyticsRoutes from "./routes/analyticsRoutes.js";
 
 dotenv.config();
 
@@ -23,6 +24,8 @@ app.use("/api/journal", journalRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/goals", goalsRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/analytics", analyticsRoutes);
+
 
 mongoose
   .connect(process.env.MONGO_URI)

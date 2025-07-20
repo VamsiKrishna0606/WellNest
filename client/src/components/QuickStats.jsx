@@ -27,15 +27,17 @@ const QuickStats = () => {
         </div>
         <div className="flex flex-col justify-center items-center p-4 bg-white/5 rounded-xl border border-white/10 h-full">
           <div className="text-2xl sm:text-3xl font-bold text-indigo-400 mb-2">
-            {data.weeklyGoalPercent}%
+            {data.todayGoalPercent} %
           </div>
-          <div className="text-slate-300 text-sm text-center">Weekly Goal</div>
+          <div className="text-slate-300 text-sm text-center">Today's Goal</div>
         </div>
         <div className="flex flex-col justify-center items-center p-4 bg-white/5 rounded-xl border border-white/10 h-full">
           <div className="text-2xl sm:text-3xl font-bold text-slate-300 mb-2">
             {data.caloriesToday}
           </div>
-          <div className="text-slate-300 text-sm text-center">Calories Today</div>
+          <div className="text-slate-300 text-sm text-center">
+            Calories Today
+          </div>
         </div>
         <div className="flex flex-col justify-center items-center p-4 bg-white/5 rounded-xl border border-white/10 h-full">
           <div className="text-2xl sm:text-3xl font-bold text-slate-300 mb-2">
