@@ -91,10 +91,11 @@ const HabitTracker = () => {
   const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
   const currentHabits = getHabitsForDate(selectedDate);
   const completedCount = currentHabits.filter((h) =>
-    h.completedDates?.some(
-      (d) => new Date().toLocaleDateString("en-CA") === selectedDate
-    )
-  ).length;
+  h.completedDates?.some(
+    (d) =>
+      new Date(d).toLocaleDateString("en-CA") === selectedDate
+  )
+).length;
 
   const resetForm = () => {
     setNewHabit({

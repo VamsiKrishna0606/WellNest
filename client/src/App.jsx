@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,7 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import LoginPage from "./pages/LoginPage";
 import NotFound from "./pages/NotFound";
 import LogoutMessage from "./components/LogoutMessage";
+import ProfilePage from "./components/ProfilePage"; // ✅ Import Profile Page
 
 const queryClient = new QueryClient();
 
@@ -31,6 +31,7 @@ const AppRoutes = () => {
           <Route path="/habit" element={<HabitPage />} />
           <Route path="/food" element={<FoodPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
+          <Route path="/profile" element={<ProfilePage />} /> {/* ✅ Add this */}
           <Route path="/login" element={<Navigate to="/dashboard" replace />} />
         </>
       ) : (

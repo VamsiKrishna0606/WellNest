@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { Calendar, BarChart3, PieChart, TrendingUp, ArrowLeft } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, PieChart as RechartsPieChart, Cell, LineChart, Line } from "recharts";
+import { useQuery } from "@tanstack/react-query";
+import axios from "../axios";
 
 const GoalAnalytics = () => {
   const [activeTab, setActiveTab] = useState("daily");

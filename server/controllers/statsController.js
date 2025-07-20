@@ -53,7 +53,6 @@ export const getStats = async (req, res) => {
       const start = new Date(habit.startDate);
       const end = habit.endDate ? new Date(habit.endDate) : null;
 
-      // Only habits that are active this week
       for (
         let d = new Date(startOfWeek);
         d <= today;
@@ -77,17 +76,18 @@ export const getStats = async (req, res) => {
       ? Math.round((weeklyCompleted / weeklyTotal) * 100)
       : 0;
 
+    // --------- Habits Hit Today (ONLY CREATED TODAY) ---------
     // --------- Habits Hit Today ---------
-    const todayHabits = habits.filter((h) => {
-      const start = new Date(h.startDate).toLocaleDateString("en-CA");
-      return start === todayIST;
-    });
+// --------- Habits Hit Today (Only Today's Created Habits) ---------
+const todayHabits = habits.filter((h) => h.createdDate === todayIST);
 
-    const todayCompleted = todayHabits.filter((h) =>
-      h.completedDates.some(
-        (date) => new Date(date).toLocaleDateString("en-CA") === todayIST
-      )
-    ).length;
+const todayCompleted = todayHabits.filter((h) =>
+  h.completedDates.some(
+    (date) => new Date(date).toLocaleDateString("en-CA") === todayIST
+  )
+).length;
+
+
     // --------- Final Response ---------
     res.json({
       streak: streakCount,
