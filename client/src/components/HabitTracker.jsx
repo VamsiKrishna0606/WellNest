@@ -87,7 +87,17 @@ const HabitTracker = () => {
   };
 
   const getHabitsForDate = (date) =>
-    habits.filter((h) => h.createdDate === date);
+    habits.filter((h) => {
+      const start = new Date(h.startDate).toISOString().split("T")[0];
+      const end = h.endDate
+        ? new Date(h.endDate).toISOString().split("T")[0]
+        : null;
+      if (!end) {
+        return date >= start;
+      }
+      return date >= start && date <= end;
+    });
+
   const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
   const currentHabits = getHabitsForDate(selectedDate);
   const completedCount = currentHabits.filter((h) =>
@@ -143,7 +153,6 @@ const HabitTracker = () => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            max={new Date().toLocaleDateString("en-CA")}
             className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
           />
         </div>
@@ -315,9 +324,10 @@ const HabitTracker = () => {
                 setNewHabit({ ...newHabit, frequency: value, selectedDays: [] })
               }
             >
-              <SelectTrigger className="w-full rounded-xl bg-white/10 border border-white/20 text-white px-4 py-3 h-12">
-                <SelectValue />
+              <SelectTrigger className="flex-1 rounded-xl bg-white/10 border border-white/20 text-white px-4 py-3 h-12">
+                <SelectValue placeholder="Unit" />
               </SelectTrigger>
+
               <SelectContent className="bg-slate-800 text-white">
                 {frequencies.map((freq) => (
                   <SelectItem key={freq} value={freq}>
@@ -364,20 +374,23 @@ const HabitTracker = () => {
                 className="w-24 px-3 py-3 bg-white/10 border border-white/20 rounded-xl text-white"
               />
               <Select
-                value={newHabit.unit}
-                onValueChange={(value) =>
-                  setNewHabit({ ...newHabit, unit: value })
-                }
-              >
-                <SelectTrigger className="flex-1 rounded-xl bg-white/10 border border-white/20 text-white px-4 py-3 h-12"></SelectTrigger>
-                <SelectContent className="bg-slate-800 text-white">
-                  {units.map((unit) => (
-                    <SelectItem key={unit} value={unit}>
-                      {unit}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+  value={newHabit.unit}
+  onValueChange={(value) =>
+    setNewHabit({ ...newHabit, unit: value })
+  }
+>
+  <SelectTrigger className="flex-1 rounded-xl bg-white/10 border border-white/20 text-white px-4 py-3 h-12">
+    <SelectValue placeholder="Unit" />
+  </SelectTrigger>
+  <SelectContent className="bg-slate-800 text-white">
+    {units.map((unit) => (
+      <SelectItem key={unit} value={unit}>
+        {unit}
+      </SelectItem>
+    ))}
+  </SelectContent>
+</Select>
+
             </div>
 
             <input
@@ -403,7 +416,6 @@ const HabitTracker = () => {
                 onChange={(e) =>
                   setNewHabit({ ...newHabit, startDate: e.target.value })
                 }
-                max={new Date().toLocaleDateString("en-CA")}
                 className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
               />
 
@@ -413,7 +425,6 @@ const HabitTracker = () => {
                 onChange={(e) =>
                   setNewHabit({ ...newHabit, endDate: e.target.value })
                 }
-                max={new Date().toLocaleDateString("en-CA")}
                 className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white"
               />
             </div>
