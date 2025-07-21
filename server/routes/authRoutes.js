@@ -11,6 +11,7 @@ const router = express.Router();
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+console.log("Request body at signup:", req.body);
 
 // ✅ These 2 are missing in your current file:
 router.get("/profile", verifyToken, getUserProfile);
