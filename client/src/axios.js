@@ -1,7 +1,7 @@
 // axios.js
 import axios from "axios";
 
-axios.defaults.baseURL = "https://wellnest-l05e.onrender.com";
+axios.defaults.baseURL = "https://wellnest-l05e.onrender.com/";
 
 axios.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
