@@ -270,8 +270,7 @@ const UnitSelect = ({ label, field, value, onChange, options }) => (
     <select
       value={value}
       onChange={(e) => onChange(field, e.target.value)}
-      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-smooth"
-      style={{ color: "#1e293b" }}
+      className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-smooth"
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value}>

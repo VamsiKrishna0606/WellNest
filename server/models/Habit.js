@@ -12,7 +12,7 @@ const habitSchema = new mongoose.Schema(
       required: true,
     },
     frequency: {
-      type: String, // "daily", "weekly", "monthly"
+      type: String,
       default: "daily",
     },
     times: {
@@ -24,7 +24,7 @@ const habitSchema = new mongoose.Schema(
       default: "minutes",
     },
     reminderTime: {
-      type: String, // "HH:mm"
+      type: String,
       default: null,
     },
     enableReminder: {
@@ -52,7 +52,7 @@ const habitSchema = new mongoose.Schema(
       default: null,
     },
     completedDates: {
-      type: [Date],
+      type: [String], // Changed from Date to String ('YYYY-MM-DD')
       default: [],
     },
   },

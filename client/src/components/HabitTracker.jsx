@@ -101,9 +101,7 @@ const HabitTracker = () => {
   const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
   const currentHabits = getHabitsForDate(selectedDate);
   const completedCount = currentHabits.filter((h) =>
-    h.completedDates?.some(
-      (d) => new Date(d).toLocaleDateString("en-CA") === selectedDate
-    )
+    h.completedDates?.includes(selectedDate)
   ).length;
 
   const resetForm = () => {
@@ -183,10 +181,7 @@ const HabitTracker = () => {
 
       <div className="space-y-3 sm:space-y-4 flex-1 overflow-y-auto">
         {currentHabits.map((habit) => {
-          const isCompletedToday = habit.completedDates?.some(
-            (d) => new Date(d).toLocaleDateString("en-CA") === selectedDate
-          );
-
+          const isCompletedToday = habit.completedDates?.includes(selectedDate);
           return (
             <div
               key={habit._id}
@@ -374,23 +369,22 @@ const HabitTracker = () => {
                 className="w-24 px-3 py-3 bg-white/10 border border-white/20 rounded-xl text-white"
               />
               <Select
-  value={newHabit.unit}
-  onValueChange={(value) =>
-    setNewHabit({ ...newHabit, unit: value })
-  }
->
-  <SelectTrigger className="flex-1 rounded-xl bg-white/10 border border-white/20 text-white px-4 py-3 h-12">
-    <SelectValue placeholder="Unit" />
-  </SelectTrigger>
-  <SelectContent className="bg-slate-800 text-white">
-    {units.map((unit) => (
-      <SelectItem key={unit} value={unit}>
-        {unit}
-      </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
-
+                value={newHabit.unit}
+                onValueChange={(value) =>
+                  setNewHabit({ ...newHabit, unit: value })
+                }
+              >
+                <SelectTrigger className="flex-1 rounded-xl bg-white/10 border border-white/20 text-white px-4 py-3 h-12">
+                  <SelectValue placeholder="Unit" />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-800 text-white">
+                  {units.map((unit) => (
+                    <SelectItem key={unit} value={unit}>
+                      {unit}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <input

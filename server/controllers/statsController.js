@@ -19,14 +19,20 @@ export const getStats = async (req, res) => {
     const dailyCaloriesGoal = userGoals?.calories || 2000;
 
     // ✅ Filter only habits created today, EXACTLY like your UI
-    const todayHabits = habits.filter((h) => h.createdDate === todayISO);
+    const todayHabits = habits.filter((h) => {
+      const start = new Date(h.startDate).toISOString().split("T")[0];
+      const end = h.endDate
+        ? new Date(h.endDate).toISOString().split("T")[0]
+        : null;
+      if (!end) return todayISO >= start;
+      return todayISO >= start && todayISO <= end;
+    });
 
     const totalHabitsToday = todayHabits.length;
 
     const completedHabitsToday = todayHabits.filter((h) =>
       h.completedDates.some(
-        (date) =>
-          new Date(date).toLocaleDateString("en-CA") === todayISO
+        (date) => new Date(date).toLocaleDateString("en-CA") === todayISO
       )
     ).length;
 

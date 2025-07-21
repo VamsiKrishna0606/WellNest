@@ -61,17 +61,12 @@ export const updateHabitCompletion = async (req, res) => {
 
     const dateISO = new Date(date).toISOString().split("T")[0];
 
-    const alreadyCompleted = habit.completedDates.some(
-      (d) => new Date(d).toISOString().split("T")[0] === dateISO
-    );
+    const alreadyCompleted = habit.completedDates.includes(dateISO);
 
     if (!alreadyCompleted) {
-      habit.completedDates.push(new Date(date));
+      habit.completedDates.push(dateISO); // ✅ STORE AS STRING ONLY
     } else {
-      // If date exists, remove it (toggle off)
-      habit.completedDates = habit.completedDates.filter(
-        (d) => new Date(d).toISOString().split("T")[0] !== dateISO
-      );
+      habit.completedDates = habit.completedDates.filter((d) => d !== dateISO);
     }
 
     await habit.save();

@@ -9,7 +9,7 @@ import {
 
 const router = express.Router();
 
-router.get("/daily", verifyToken, getDailyAnalytics);
+router.get("/weekly", verifyToken, getDailyAnalytics);
 router.get("/monthly", verifyToken, getMonthlyAnalytics);
 router.get("/yearly", verifyToken, getYearlyAnalytics);
 router.get("/summary", verifyToken, getSummaryForDate);

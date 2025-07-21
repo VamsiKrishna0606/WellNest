@@ -1,11 +1,5 @@
 import { useState } from "react";
-import {
-  Calendar,
-  BarChart3,
-  PieChart,
-  TrendingUp,
-  ArrowLeft,
-} from "lucide-react";
+import { Calendar, BarChart3, TrendingUp, ArrowLeft } from "lucide-react";
 import {
   BarChart,
   Bar,
@@ -25,15 +19,22 @@ import axios from "../axios";
 
 const COLORS = ["#6366f1", "#8b5cf6", "#06b6d4"];
 
+const mealIcons = {
+  Breakfast: "🥓",
+  Lunch: "🍽️",
+  Dinner: "🍜",
+  Snack: "🍼",
+};
+
 const GoalAnalytics = () => {
-  const [activeTab, setActiveTab] = useState("daily");
+  const [activeTab, setActiveTab] = useState("weekly");
   const [selectedAnalyticsDate, setSelectedAnalyticsDate] = useState(
     new Date().toISOString().split("T")[0]
   );
   const [showSpecificDateView, setShowSpecificDateView] = useState(false);
 
   const tabs = [
-    { id: "daily", label: "Daily", icon: Calendar },
+    { id: "weekly", label: "Weekly", icon: Calendar },
     { id: "monthly", label: "Monthly", icon: BarChart3 },
     { id: "yearly", label: "Yearly", icon: TrendingUp },
   ];
@@ -101,7 +102,7 @@ const GoalAnalytics = () => {
                   <span className="text-xl">{habit.emoji}</span>
                   <span
                     className={`flex-1 ${
-                      habit.completed
+                      habit.isCompleted
                         ? "text-green-400 line-through"
                         : "text-slate-300"
                     }`}
@@ -110,12 +111,12 @@ const GoalAnalytics = () => {
                   </span>
                   <span
                     className={`text-sm px-2 py-1 rounded-full ${
-                      habit.completed
+                      habit.isCompleted
                         ? "bg-green-500/20 text-green-400"
                         : "bg-slate-500/20 text-slate-400"
                     }`}
                   >
-                    {habit.completed ? "✓ Done" : "Pending"}
+                    {habit.isCompleted ? "✓ Done" : "Pending"}
                   </span>
                 </div>
               ))
@@ -124,58 +125,56 @@ const GoalAnalytics = () => {
 
           <div className="bg-white/5 rounded-xl p-4 border border-white/10">
             <h3 className="text-lg font-semibold text-white mb-4">
-              🍽️ Calorie Distribution
+              🍽️ Food Log
             </h3>
-            {summaryData.foodList.length === 0 ? (
+            {Object.keys(summaryData.foodByMealType || {}).length === 0 ? (
               <p className="text-slate-400 text-center">
-                No food for this date
+                No food logged for this date.
               </p>
             ) : (
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartsPieChart>
-                    <Pie
-                      data={[
-                        { name: "Protein", value: summaryData.totalProtein },
-                        { name: "Carbs", value: summaryData.totalCarbs },
-                        { name: "Fats", value: summaryData.totalFats },
-                      ].filter((macro) => macro.value > 0)}
-                      dataKey="value"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={5}
-                      label={({ name }) => name}
-                    >
-                      {COLORS.map((color, index) => (
-                        <Cell key={`cell-${index}`} fill={color} />
+              Object.entries(summaryData.foodByMealType).map(
+                ([meal, items]) => (
+                  <div key={meal} className="mb-3">
+                    <h4 className="text-slate-300 font-semibold">
+                      {mealIcons[meal] || "•"} {meal}:
+                    </h4>
+                    <ul className="list-disc list-inside text-slate-400">
+                      {items.map((item) => (
+                        <li key={item._id}>
+                          {item.name} ({item.calories} cal)
+                        </li>
                       ))}
-                    </Pie>
-                    <Legend />
-                  </RechartsPieChart>
-                </ResponsiveContainer>
+                    </ul>
+                  </div>
+                )
+              )
+            )}
+            <h3 className="text-lg font-semibold text-white mb-4 mt-6">
+              📓 Journal Entry
+            </h3>
+            <p className="text-slate-400 whitespace-pre-wrap min-h-[50px]">
+              {summaryData.journalEntry?.entry?.trim()
+                ? summaryData.journalEntry.entry
+                : "No journal entry for this date."}
+            </p>
+            {summaryData.journalEntry?.moodRating && (
+              <div className="flex items-center space-x-2 mt-2">
+                <span className="text-slate-400 text-sm">Mood Rating:</span>
+                {[1, 2, 3, 4, 5].map((r) => (
+                  <div
+                    key={r}
+                    className={`w-3 h-3 rounded-full ${
+                      r <= summaryData.journalEntry.moodRating
+                        ? "bg-indigo-400"
+                        : "bg-slate-600"
+                    }`}
+                  />
+                ))}
+                <span className="ml-2 text-indigo-400 text-sm">
+                  {summaryData.journalEntry.moodRating}/5
+                </span>
               </div>
             )}
-          </div>
-        </div>
-
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-            <div className="text-2xl font-bold text-indigo-400">
-              {analyticsData.activeDays}
-            </div>
-            <div className="text-sm text-slate-400">Active Days</div>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-            <div className="text-2xl font-bold text-indigo-400">
-              {analyticsData.totalCalories}
-            </div>
-            <div className="text-sm text-slate-400">Total Calories</div>
-          </div>
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 text-center">
-            <div className="text-2xl font-bold text-indigo-400">
-              {analyticsData.avgCompletion}%
-            </div>
-            <div className="text-sm text-slate-400">Avg Completion</div>
           </div>
         </div>
       </div>
@@ -231,8 +230,9 @@ const GoalAnalytics = () => {
                 <XAxis
                   dataKey={activeTab === "yearly" ? "month" : "date"}
                   stroke="rgba(255,255,255,0.5)"
+                  tick={{ fontSize: 10 }}
                 />
-                <YAxis stroke="rgba(255,255,255,0.5)" />
+                <YAxis stroke="rgba(255,255,255,0.5)" tick={{ fontSize: 10 }} />
                 <Bar
                   dataKey="habitsPercent"
                   fill="url(#habitGradient)"
@@ -261,7 +261,55 @@ const GoalAnalytics = () => {
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              {activeTab === "daily" ? (
+              {activeTab === "weekly" ? (
+                <LineChart data={analyticsData.datasets}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255,255,255,0.1)"
+                  />
+                  <XAxis
+                    dataKey={activeTab === "yearly" ? "month" : "date"}
+                    stroke="rgba(255,255,255,0.5)"
+                    tick={{ fontSize: 10 }}
+                  />
+                  <YAxis
+                    stroke="rgba(255,255,255,0.5)"
+                    tick={{ fontSize: 10 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="calories"
+                    stroke="#06b6d4"
+                    strokeWidth={3}
+                    dot={{ fill: "#06b6d4", r: 4 }}
+                  />
+                </LineChart>
+              ) : activeTab === "monthly" || activeTab === "yearly" ? (
+                <LineChart data={analyticsData.datasets}>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="rgba(255,255,255,0.1)"
+                  />
+                  <XAxis
+                    dataKey={activeTab === "yearly" ? "month" : "date"}
+                    stroke="rgba(255,255,255,0.5)"
+                    tick={{ fontSize: 10 }}
+                  />
+                  <YAxis
+                    stroke="rgba(255,255,255,0.5)"
+                    tick={{ fontSize: 10 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="calories"
+                    stroke="#06b6d4"
+                    strokeWidth={3}
+                    dot={{ fill: "#06b6d4", r: 4 }}
+                  />
+                </LineChart>
+              ) : analyticsData.totalProtein > 0 ||
+                analyticsData.totalCarbs > 0 ||
+                analyticsData.totalFats > 0 ? (
                 <RechartsPieChart>
                   <Pie
                     data={[
@@ -282,24 +330,9 @@ const GoalAnalytics = () => {
                   <Legend />
                 </RechartsPieChart>
               ) : (
-                <LineChart data={analyticsData.datasets}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="rgba(255,255,255,0.1)"
-                  />
-                  <XAxis
-                    dataKey={activeTab === "yearly" ? "month" : "date"}
-                    stroke="rgba(255,255,255,0.5)"
-                  />
-                  <YAxis stroke="rgba(255,255,255,0.5)" />
-                  <Line
-                    type="monotone"
-                    dataKey="calories"
-                    stroke="#06b6d4"
-                    strokeWidth={3}
-                    dot={{ fill: "#06b6d4", r: 4 }}
-                  />
-                </LineChart>
+                <div className="text-slate-400 text-center">
+                  No macros data to show.
+                </div>
               )}
             </ResponsiveContainer>
           </div>

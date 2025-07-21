@@ -1,5 +1,6 @@
 import Habit from "../models/Habit.js";
 import FoodLog from "../models/FoodLog.js";
+import Journal from "../models/Journal.js";
 import UserGoals from "../models/UserGoals.js";
 
 function getDaysInMonth(year, month) {
@@ -31,9 +32,7 @@ export const getDailyAnalytics = async (req, res) => {
         (!h.endDate || new Date(h.endDate) >= dateObj)
     ).length;
     const completedHabits = habits.filter((h) =>
-      h.completedDates.some(
-        (d) => new Date(d).toISOString().split("T")[0] === dateStr
-      )
+      h.completedDates.includes(dateStr)
     ).length;
     const calories = foodLogs
       .filter((log) => log.date.toISOString().split("T")[0] === dateStr)
@@ -51,7 +50,8 @@ export const getDailyAnalytics = async (req, res) => {
   const totalCalories = data.reduce((acc, d) => acc + d.calories, 0);
 
   res.json({
-    labels: days.map((d) => d.split("-")[2]),
+    labels: days.map((d) => d.substring(5)), // Gives 'MM-DD'
+
     datasets: data.map((d) => ({
       date: d.date.split("-")[2],
       habitsPercent: d.habitsPercent,
@@ -90,9 +90,7 @@ export const getMonthlyAnalytics = async (req, res) => {
         (!h.endDate || new Date(h.endDate) >= dateObj)
     ).length;
     const completedHabits = habits.filter((h) =>
-      h.completedDates.some(
-        (d) => new Date(d).toISOString().split("T")[0] === dateStr
-      )
+      h.completedDates.includes(dateStr)
     ).length;
     const calories = foodLogs
       .filter((log) => log.date.toISOString().split("T")[0] === dateStr)
@@ -110,7 +108,8 @@ export const getMonthlyAnalytics = async (req, res) => {
   const totalCalories = data.reduce((acc, d) => acc + d.calories, 0);
 
   res.json({
-    labels: days.map((d) => d.split("-")[2]),
+    labels: days.map((d) => d.substring(5)),
+
     datasets: data.map((d) => ({
       date: d.date.split("-")[2],
       habitsPercent: d.habitsPercent,
@@ -136,17 +135,16 @@ export const getYearlyAnalytics = async (req, res) => {
     let calories = 0;
 
     for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(new Date().getFullYear(), monthIdx, day);
-      const dateStr = date.toISOString().split("T")[0];
+      const dateStr = new Date(new Date().getFullYear(), monthIdx, day)
+        .toISOString()
+        .split("T")[0];
       const totalHabits = habits.filter(
         (h) =>
-          new Date(h.startDate) <= date &&
-          (!h.endDate || new Date(h.endDate) >= date)
+          new Date(h.startDate) <= new Date(dateStr) &&
+          (!h.endDate || new Date(h.endDate) >= new Date(dateStr))
       ).length;
       const completedHabits = habits.filter((h) =>
-        h.completedDates.some(
-          (d) => new Date(d).toISOString().split("T")[0] === dateStr
-        )
+        h.completedDates.includes(dateStr)
       ).length;
       calories += foodLogs
         .filter((log) => log.date.toISOString().split("T")[0] === dateStr)
@@ -163,7 +161,20 @@ export const getYearlyAnalytics = async (req, res) => {
     };
   });
 
-  const activeDays = data.filter((d) => d.active).length;
+  const activeDays = months.reduce((total, monthIdx) => {
+    const daysInMonth = getDaysInMonth(new Date().getFullYear(), monthIdx);
+    let count = 0;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dateStr = new Date(new Date().getFullYear(), monthIdx, day)
+        .toISOString()
+        .split("T")[0];
+      const isActive =
+        habits.some((h) => h.completedDates.includes(dateStr)) ||
+        foodLogs.some((f) => f.date.toISOString().split("T")[0] === dateStr);
+      if (isActive) count++;
+    }
+    return total + count;
+  }, 0);
 
   res.json({
     labels: [
@@ -208,58 +219,74 @@ export const getYearlyAnalytics = async (req, res) => {
 
 // ---------------- SUMMARY ----------------
 export const getSummaryForDate = async (req, res) => {
-  const userId = req.user.id;
-  const dateStr = req.query.date;
-  const dateObj = new Date(dateStr);
-  dateObj.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(dateObj);
-  tomorrow.setDate(dateObj.getDate() + 1);
+  try {
+    const userId = req.user.id;
+    const dateStr = req.query.date;
 
-  const habits = await Habit.find({ userId });
-  const foodLogs = await FoodLog.find({
-    userId,
-    date: { $gte: dateObj, $lt: tomorrow },
-  });
-  const userGoals = await UserGoals.findOne({ userId });
-  const caloriesGoal = userGoals?.calories || 2000;
+    if (!dateStr) {
+      return res.status(400).json({ error: "Missing date." });
+    }
 
-  const activeHabits = habits.filter(
-    (h) =>
-      new Date(h.startDate) <= dateObj &&
-      (!h.endDate || new Date(h.endDate) >= dateObj)
-  );
+    const allHabits = await Habit.find({ userId });
 
-  const completedHabits = activeHabits.filter((h) =>
-    h.completedDates.some(
-      (d) => new Date(d).toISOString().split("T")[0] === dateStr
-    )
-  );
+    const habitsList = allHabits
+      .filter((h) => {
+        const start = new Date(h.startDate);
+        const end = h.endDate ? new Date(h.endDate) : null;
+        const targetDate = new Date(dateStr);
+        return targetDate >= start && (!end || targetDate <= end);
+      })
+      .map((h) => ({
+        _id: h._id,
+        name: h.name,
+        emoji: h.emoji,
+        isCompleted: h.completedDates.includes(dateStr),
+      }));
 
-  const habitsPercent = activeHabits.length
-    ? Math.round((completedHabits.length / activeHabits.length) * 100)
-    : 0;
+    const foodLogs = await FoodLog.find({
+      userId,
+      date: new Date(dateStr),
+    });
 
-  const caloriesToday = foodLogs.reduce(
-    (total, log) => total + (log.calories || 0),
-    0
-  );
-  const totalProtein = foodLogs.reduce(
-    (acc, log) => acc + (log.protein || 0),
-    0
-  );
-  const totalCarbs = foodLogs.reduce((acc, log) => acc + (log.carbs || 0), 0);
-  const totalFats = foodLogs.reduce((acc, log) => acc + (log.fats || 0), 0);
+    const foodByMealType = foodLogs.reduce((acc, item) => {
+      if (!acc[item.mealType]) acc[item.mealType] = [];
+      acc[item.mealType].push(item);
+      return acc;
+    }, {});
 
-  res.json({
-    date: dateStr,
-    habitsCompleted: habitsPercent,
-    caloriesConsumed: caloriesToday,
-    caloriesGoal,
-    allCompleted: habitsPercent === 100 && caloriesToday <= caloriesGoal,
-    habitsList: activeHabits,
-    foodList: foodLogs,
-    totalProtein,
-    totalCarbs,
-    totalFats,
-  });
+    const journalEntry = await Journal.findOne({
+      userId,
+      date: dateStr,
+    });
+
+    const userGoals = await UserGoals.findOne({ userId });
+    const caloriesGoal = userGoals?.calories || 2000;
+
+    const caloriesToday = foodLogs.reduce(
+      (total, log) => total + (log.calories || 0),
+      0
+    );
+
+    const totalProtein = foodLogs.reduce(
+      (acc, log) => acc + (log.protein || 0),
+      0
+    );
+    const totalCarbs = foodLogs.reduce((acc, log) => acc + (log.carbs || 0), 0);
+    const totalFats = foodLogs.reduce((acc, log) => acc + (log.fats || 0), 0);
+
+    res.json({
+      date: dateStr,
+      habitsList,
+      caloriesConsumed: caloriesToday,
+      caloriesGoal,
+      foodList: foodLogs,
+      foodByMealType,
+      totalProtein,
+      totalCarbs,
+      totalFats,
+      journalEntry: journalEntry || null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
