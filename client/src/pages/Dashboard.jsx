@@ -1,20 +1,26 @@
+import { useRef } from "react";
 import Navigation from "../components/Navigation";
 import HabitTracker from "../components/HabitTracker";
 import FoodLogger from "../components/FoodLogger";
-
 import JournalWidget from "../components/JournalWidget";
 import ChatAssistant from "../components/ChatAssistant";
-import VoiceAssistant from "../components/VoiceAssistant";
 import QuickStats from "../components/QuickStats";
+import VoiceAssistant from "../components/VoiceAssistant";
 
 const Dashboard = () => {
+  const chatRef = useRef(null);
+
+  const handleVoiceInput = (spokenText) => {
+    chatRef.current?.handleVoiceFromOutside(spokenText);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
       <Navigation />
 
-      {/* Floating Voice Assistant - Aligned with Chat Assistant */}
-      <div className="fixed bottom-6 right-28 z-40">
-        <VoiceAssistant />
+      {/* Floating Voice Assistant Mic Button */}
+      <div className="fixed bottom-6 right-28 z-50">
+        <VoiceAssistant onTextCaptured={handleVoiceInput} />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -27,25 +33,17 @@ const Dashboard = () => {
           </p>
         </div>
 
-        {/* 2x2 Grid Layout */}
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Top Left: Habit Tracker */}
             <div className="min-h-fit">
               <HabitTracker />
             </div>
-
-            {/* Top Right: Food Logger */}
             <div className="min-h-fit">
               <FoodLogger />
             </div>
-
-            {/* Bottom Left: Journal - Fixed Height */}
             <div className="h-96">
               <JournalWidget />
             </div>
-            {/* Bottom Right: Quick Stats - Fixed Height */}
-            {/* Bottom Right: Quick Stats - Fixed Height */}
             <div className="h-96">
               <QuickStats />
             </div>
@@ -53,7 +51,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <ChatAssistant />
+      <ChatAssistant ref={chatRef} />
     </div>
   );
 };

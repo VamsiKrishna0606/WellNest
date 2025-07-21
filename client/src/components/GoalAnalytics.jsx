@@ -257,7 +257,7 @@ const GoalAnalytics = () => {
 
         <div className="bg-white/5 rounded-xl p-4 border border-white/10">
           <h3 className="text-lg font-semibold text-white mb-4">
-            {activeTab === "daily" ? "Calorie Distribution" : "Food Trends"}
+            {activeTab === "weekly" ? "Calorie Distribution" : "Food Trends"}
           </h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
