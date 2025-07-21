@@ -6,11 +6,6 @@ import {
 } from "lucide-react";
 import Navigation from "../components/Navigation";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { format } from "date-fns";
 
 const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -49,19 +44,25 @@ const ProfilePage = () => {
   };
 
   const handleSave = () => {
-    axios
-      .put("http://localhost:5000/api/auth/profile", profileData, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(() => {
-        toast({
-          title: "Profile Updated",
-          description: "Your profile information has been saved successfully.",
-        });
-        setIsEditing(false);
-      })
-      .catch((err) => console.error(err));
-  };
+  axios
+    .put("http://localhost:5000/api/auth/profile", profileData, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    .then((res) => {
+      // 🔥 Update state with fresh data returned from backend
+      setProfileData({
+        ...res.data,
+        joinedDate: res.data.joinedDate ? res.data.joinedDate.split("T")[0] : "",
+      });
+      toast({
+        title: "Profile Updated",
+        description: "Your profile information has been saved successfully.",
+      });
+      setIsEditing(false);
+    })
+    .catch((err) => console.error(err));
+};
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
@@ -123,31 +124,13 @@ const ProfilePage = () => {
                     <Calendar className="w-4 h-4 text-indigo-400" />
                     <span>Joined Date</span>
                   </label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        disabled={!isEditing}
-                        className={cn(
-                          "w-full h-12 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-smooth disabled:opacity-70 disabled:cursor-not-allowed justify-start text-left font-normal",
-                          !profileData.joinedDate && "text-slate-400"
-                        )}
-                      >
-                        <Calendar className="mr-2 h-4 w-4" />
-                        {profileData.joinedDate ? format(new Date(profileData.joinedDate), "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <CalendarComponent
-                        mode="single"
-                        selected={profileData.joinedDate ? new Date(profileData.joinedDate) : undefined}
-                        onSelect={(date) => handleInputChange("joinedDate", date ? format(date, "yyyy-MM-dd") : "")}
-                        disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
-                        initialFocus
-                        className={cn("p-3 pointer-events-auto")}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <input
+                    type="date"
+                    value={profileData.joinedDate}
+                    onChange={(e) => handleInputChange('joinedDate', e.target.value)}
+                    disabled={!isEditing}
+                    className="w-full h-12 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-smooth disabled:opacity-70 disabled:cursor-not-allowed"
+                  />
                   <span className="text-xs text-slate-400">Member since</span>
                 </div>
               </div>
