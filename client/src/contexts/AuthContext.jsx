@@ -5,7 +5,7 @@ const AuthContext = createContext(undefined);
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
@@ -16,28 +16,34 @@ export const AuthProvider = ({ children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [user, setUser] = useState(null);
 
+  // Auto-login check on page refresh
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       setIsAuthenticated(true);
-      axios
-        .get("/api/auth/profile", {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        .then((res) => setUser(res.data))
-        .catch(() => setIsAuthenticated(false));
+      fetchUserProfile(token);
     }
   }, []);
+
+  const fetchUserProfile = async (token) => {
+    try {
+      const res = await axios.get("/api/auth/profile", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setUser(res.data);
+    } catch {
+      setIsAuthenticated(false);
+      setUser(null);
+    }
+  };
 
   const login = async (email, password) => {
     try {
       const res = await axios.post("/api/auth/login", { email, password });
-      localStorage.setItem("token", res.data.token);
+      const token = res.data.token;
+      localStorage.setItem("token", token);
       setIsAuthenticated(true);
-      const profileRes = await axios.get("/api/auth/profile", {
-        headers: { Authorization: `Bearer ${res.data.token}` },
-      });
-      setUser(profileRes.data);
+      await fetchUserProfile(token);
     } catch (err) {
       alert("Invalid credentials or server issue.");
     }
@@ -45,7 +51,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password) => {
     try {
-      await axios.post("/api/auth/register", {
+      await axios.post("/api/auth/signup", {
         email,
         password,
         username: email.split("@")[0],
@@ -59,15 +65,24 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setIsLoggingOut(true);
     setTimeout(() => {
-      setIsAuthenticated(false);
-      setIsLoggingOut(false);
       localStorage.removeItem("token");
+      setIsAuthenticated(false);
       setUser(null);
-    }, 2000);
+      setIsLoggingOut(false);
+    }, 1000);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, register, logout, isLoggingOut, user }}>
+    <AuthContext.Provider
+      value={{
+        isAuthenticated,
+        login,
+        register,
+        logout,
+        isLoggingOut,
+        user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
