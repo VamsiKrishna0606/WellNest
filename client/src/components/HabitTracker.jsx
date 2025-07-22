@@ -9,7 +9,8 @@ import {
 } from "./ui/select";
 import { Switch } from "./ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "../axios";
+import axiosInstance from "../axiosInstance";
+
 
 const emojis = ["🧘", "💧", "🏃", "🍎", "📖", "💪", "🚴", "🎯", "⚡", "🌟"];
 const units = [
@@ -50,7 +51,7 @@ const HabitTracker = () => {
   const { data } = useQuery({
     queryKey: ["habits"],
     queryFn: async () => {
-      const res = await axios.get("/habits");
+      const res = await axiosInstance.get("/habits");
       return res.data || [];
     },
   });
@@ -59,21 +60,21 @@ const HabitTracker = () => {
 
   const createHabit = useMutation({
     mutationFn: async (habit) => {
-      await axios.post("/habits", habit);
+      await axiosInstance.post("/habits", habit);
     },
     onSuccess: () => queryClient.invalidateQueries(["habits"]),
   });
 
   const updateHabit = useMutation({
     mutationFn: async ({ id, date }) => {
-      await axios.patch(`/habits/${id}`, { date });
+      await axiosInstance.patch(`/habits/${id}`, { date });
     },
     onSuccess: () => queryClient.invalidateQueries(["habits"]),
   });
 
   const deleteHabit = useMutation({
     mutationFn: async (id) => {
-      await axios.delete(`/habits/${id}`);
+      await axiosInstance.delete(`/habits/${id}`);
     },
     onSuccess: () => queryClient.invalidateQueries(["habits"]),
   });

@@ -9,7 +9,8 @@ import {
   Activity,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "../axios";
+import axiosInstance from "../axiosInstance";
+
 
 const UserGoalsModal = ({ isOpen, onClose }) => {
   const queryClient = useQueryClient();
@@ -31,14 +32,14 @@ const UserGoalsModal = ({ isOpen, onClose }) => {
   const { data: userGoals } = useQuery({
     queryKey: ["userGoals"],
     queryFn: async () => {
-      const res = await axios.get("/goals");
+      const res = await axiosInstance.get("/goals");
       return res.data;
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (goalsData) => {
-      await axios.post("/goals", {
+      await axiosInstance.post("/goals", {
         dailySteps: goalsData.dailySteps,
         dailyCalories: goalsData.dailyCalories,
         weeklyWorkouts: goalsData.weeklyWorkouts,

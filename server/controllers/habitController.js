@@ -1,11 +1,9 @@
 import Habit from "../models/Habit.js";
 import User from "../models/User.js";
-import { getUserTimezoneRange } from "../utils/dateHelpers.js";
 
 // ✅ Get All Habits
 export const getUserHabits = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id);
     const habits = await Habit.find({ userId: req.user.id });
     res.json(habits);
   } catch (err) {
@@ -56,6 +54,7 @@ export const createHabit = async (req, res) => {
 };
 
 // ✅ Update Habit Completion (toggle)
+// ✅ Update Habit Completion (toggle)
 export const updateHabitCompletion = async (req, res) => {
   try {
     const habitId = req.params.id;
@@ -63,20 +62,15 @@ export const updateHabitCompletion = async (req, res) => {
 
     if (!date) return res.status(400).json({ error: "Date is required." });
 
-    const user = await User.findById(req.user.id);
-    const timezone = user.timezone;
-    const { start } = getUserTimezoneRange(new Date(date), timezone);
-    const dateISO = start.toISOString().split("T")[0];
-
     const habit = await Habit.findOne({ _id: habitId, userId: req.user.id });
     if (!habit) return res.status(404).json({ error: "Habit not found." });
 
-    const alreadyCompleted = habit.completedDates.includes(dateISO);
+    const alreadyCompleted = habit.completedDates.includes(date);
 
     if (!alreadyCompleted) {
-      habit.completedDates.push(dateISO);
+      habit.completedDates.push(date);
     } else {
-      habit.completedDates = habit.completedDates.filter((d) => d !== dateISO);
+      habit.completedDates = habit.completedDates.filter((d) => d !== date);
     }
 
     await habit.save();

@@ -1,6 +1,7 @@
 // src/components/ChatAssistant.jsx
 import { useState, forwardRef, useImperativeHandle } from "react";
-import axios from "../axios";
+import axiosInstance from "../axiosInstance";
+
 
 const ChatAssistant = forwardRef((props, ref) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -40,7 +41,7 @@ const ChatAssistant = forwardRef((props, ref) => {
       setMessages((prevMessages) => [...prevMessages, userMessage]);
 
       try {
-        const res = await axios.post("/chatbot", { message: msg });
+        const res = await axiosInstance.post("/chatbot", { message: msg });
         const botMessage = { text: res.data.reply, isBot: true };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
         speakOutLoud(res.data.reply);

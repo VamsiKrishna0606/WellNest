@@ -18,42 +18,52 @@ const analyzeMood = (journals) => {
 };
 
 export const chatWithAssistant = async (req, res) => {
-  const userId = req.user.id;
-  const { message } = req.body;
-
   try {
+    const userId = req.user.id;
+    const { message } = req.body;
+
     const user = await User.findById(userId);
     const timezone = user.timezone;
-    const { start: todayStart, end: tomorrowStart } = getUserTimezoneRange(new Date(), timezone);
+    const { start: todayStart, end: tomorrowStart } = getUserTimezoneRange(
+      new Date(),
+      timezone
+    );
 
-    const goals = await UserGoals.findOne({ userId });
-    const habits = await Habit.find({ userId });
-    const foodLogs = await FoodLog.find({ userId }).sort({ date: -1 });
-    const journals = await Journal.find({ userId });
-
-    const todayLogs = foodLogs.filter((f) => f.date >= todayStart && f.date < tomorrowStart);
-
-    const sevenDaysAgo = new Date(todayStart);
-    sevenDaysAgo.setUTCDate(todayStart.getUTCDate() - 6);
-    const weeklyLogs = foodLogs.filter((f) => f.date >= sevenDaysAgo && f.date < tomorrowStart);
-
-    const currentMonth = todayStart.getUTCMonth();
-    const monthlyLogs = foodLogs.filter((f) => f.date.getUTCMonth() === currentMonth);
-
-    const thisMonthCalories = monthlyLogs.reduce((acc, log) => acc + (log.calories || 0), 0);
-    const lastMonth = new Date(todayStart);
-    lastMonth.setUTCMonth(lastMonth.getUTCMonth() - 1);
-    const lastMonthCalories = foodLogs
-      .filter((f) => f.date.getUTCMonth() === lastMonth.getUTCMonth())
-      .reduce((acc, log) => acc + (log.calories || 0), 0);
-
-    const weeklyCalories = weeklyLogs.reduce((acc, log) => acc + (log.calories || 0), 0);
-    const todayCalories = todayLogs.reduce((acc, log) => acc + (log.calories || 0), 0);
+    const [goals, habits, foodLogs, journals] = await Promise.all([
+      UserGoals.findOne({ userId }),
+      Habit.find({ userId }),
+      FoodLog.find({ userId }).sort({ date: -1 }),
+      Journal.find({ userId }),
+    ]);
 
     const todayStr = todayStart.toISOString().split("T")[0];
-    const todayCompletedHabits = habits.filter((h) => h.completedDates.includes(todayStr)).length;
-    const totalHabits = habits.length;
+    const todayLogs = foodLogs.filter(
+      (f) => f.date >= todayStart && f.date < tomorrowStart
+    );
+    const sevenDaysAgo = new Date(todayStart);
+    sevenDaysAgo.setUTCDate(todayStart.getUTCDate() - 6);
+    const weeklyLogs = foodLogs.filter(
+      (f) => f.date >= sevenDaysAgo && f.date < tomorrowStart
+    );
+    const currentMonth = todayStart.getUTCMonth();
+    const monthlyLogs = foodLogs.filter(
+      (f) => f.date.getUTCMonth() === currentMonth
+    );
+    const lastMonth = new Date(todayStart);
+    lastMonth.setUTCMonth(lastMonth.getUTCMonth() - 1);
 
+    const reduceCalories = (logs) =>
+      logs.reduce((acc, log) => acc + (log.calories || 0), 0);
+    const todayCalories = reduceCalories(todayLogs);
+    const weeklyCalories = reduceCalories(weeklyLogs);
+    const thisMonthCalories = reduceCalories(monthlyLogs);
+    const lastMonthCalories = reduceCalories(
+      foodLogs.filter((f) => f.date.getUTCMonth() === lastMonth.getUTCMonth())
+    );
+
+    const todayCompletedHabits = habits.filter((h) =>
+      h.completedDates.includes(todayStr)
+    ).length;
     const mood = analyzeMood(journals);
     const journalKeywords = journals
       .slice(-5)
@@ -63,7 +73,9 @@ export const chatWithAssistant = async (req, res) => {
     const context = `
 User Info:
 - Name: ${user.username}
-- Age: ${user.age || "Not set"}, Weight: ${user.weight || "Not set"}, Height: ${user.height || "Not set"}
+- Age: ${user.age || "Not set"}, Weight: ${user.weight || "Not set"}, Height: ${
+      user.height || "Not set"
+    }
 - Fitness Level: ${user.fitnessLevel || "Not set"}
 - Goal: ${user.goal || "Not set"}
 
@@ -74,31 +86,26 @@ Goals:
 
 Today's Summary:
 - Calories Consumed: ${todayCalories}
-- Habits Completed: ${todayCompletedHabits} / ${totalHabits}
+- Habits Completed: ${todayCompletedHabits} / ${habits.length}
 - Mood: ${mood}
 - Recent Journal Keywords: ${journalKeywords}
 
 Weekly Summary:
 - Total Calories: ${weeklyCalories}
-- Active Days (meals logged / habits completed): Approx ${weeklyLogs.length} days
+- Active Days (meals logged / habits completed): Approx ${
+      weeklyLogs.length
+    } days
 
 Monthly Comparison:
 - This Month Calories: ${thisMonthCalories}
 - Last Month Calories: ${lastMonthCalories}
-
-Yearly: No need, data not detailed enough.
-
-Instructions:
-- If user asks about improvement, compare this month to last month.
-- If user asks about calories, hydration, steps, answer from this context.
-- If user asks casually, reply friendly, chill, human-like.
-- Do NOT invent any numbers not given here.
 `;
 
     const prompt = [
       {
         role: "system",
-        content: "You are WellNest, a human-like wellness AI coach. Be short, helpful, friendly.",
+        content:
+          "You are WellNest, a human-like wellness AI coach. Be short, helpful, friendly.",
       },
       {
         role: "user",

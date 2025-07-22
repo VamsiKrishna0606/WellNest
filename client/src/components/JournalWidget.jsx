@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Calendar, Edit3, Save } from "lucide-react";
-import axios from "../axios";
+import axiosInstance from "../axiosInstance";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Textarea } from "./ui/textarea";
 
@@ -17,7 +18,7 @@ const JournalWidget = () => {
   const { data: journals = [] } = useQuery({
     queryKey: ["journals"],
     queryFn: async () => {
-      const res = await axios.get("/journal");
+      const res = await axiosInstance.get("/journal");
       return res.data || [];
     },
   });
@@ -26,7 +27,7 @@ const JournalWidget = () => {
 
   const createOrUpdateJournal = useMutation({
     mutationFn: async (journalData) => {
-      await axios.post("/journal", journalData);
+      await axiosInstance.post("/journal", journalData);
     },
     onSuccess: () => queryClient.invalidateQueries(["journals"]),
   });

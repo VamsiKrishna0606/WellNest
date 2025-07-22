@@ -15,7 +15,8 @@ import {
   Legend,
 } from "recharts";
 import { useQuery } from "@tanstack/react-query";
-import axios from "../axios";
+import axiosInstance from "../axiosInstance";
+
 
 const COLORS = ["#6366f1", "#8b5cf6", "#06b6d4"];
 
@@ -41,13 +42,13 @@ const GoalAnalytics = () => {
 
   const { data: analyticsData = {}, isLoading } = useQuery({
     queryKey: ["analytics", activeTab],
-    queryFn: async () => (await axios.get(`/api/analytics/${activeTab}`)).data,
+    queryFn: async () => (await axiosInstance.get(`/analytics/${activeTab}`)).data,
   });
 
   const { data: summaryData } = useQuery({
     queryKey: ["analytics-summary", selectedAnalyticsDate],
     queryFn: async () =>
-      (await axios.get(`/api/analytics/summary?date=${selectedAnalyticsDate}`))
+      (await axiosInstance.get(`/analytics/summary?date=${selectedAnalyticsDate}`))
         .data,
     enabled: showSpecificDateView,
   });

@@ -1,8 +1,18 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axiosInstance from "../axiosInstance";
 import {
-  User, Mail, Hash, Users, Weight, Ruler,
-  Activity, Target, Globe, Calendar, Edit3, Save
+  User,
+  Mail,
+  Hash,
+  Users,
+  Weight,
+  Ruler,
+  Activity,
+  Target,
+  Globe,
+  Calendar,
+  Edit3,
+  Save,
 } from "lucide-react";
 import Navigation from "../components/Navigation";
 import { useToast } from "@/hooks/use-toast";
@@ -26,14 +36,16 @@ const ProfilePage = () => {
   const token = localStorage.getItem("token");
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/auth/profile", {
+    axiosInstance
+      .get("/auth/profile", {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then((res) => {
         setProfileData({
           ...res.data,
-          joinedDate: res.data.joinedDate ? res.data.joinedDate.split("T")[0] : "",
+          joinedDate: res.data.joinedDate
+            ? res.data.joinedDate.split("T")[0]
+            : "",
         });
       })
       .catch((err) => console.error(err));
@@ -44,25 +56,26 @@ const ProfilePage = () => {
   };
 
   const handleSave = () => {
-  axios
-    .put("http://localhost:5000/api/auth/profile", profileData, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    .then((res) => {
-      // 🔥 Update state with fresh data returned from backend
-      setProfileData({
-        ...res.data,
-        joinedDate: res.data.joinedDate ? res.data.joinedDate.split("T")[0] : "",
-      });
-      toast({
-        title: "Profile Updated",
-        description: "Your profile information has been saved successfully.",
-      });
-      setIsEditing(false);
-    })
-    .catch((err) => console.error(err));
-};
-
+    axiosInstance
+      .put("/auth/profile", profileData, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      .then((res) => {
+        // 🔥 Update state with fresh data returned from backend
+        setProfileData({
+          ...res.data,
+          joinedDate: res.data.joinedDate
+            ? res.data.joinedDate.split("T")[0]
+            : "",
+        });
+        toast({
+          title: "Profile Updated",
+          description: "Your profile information has been saved successfully.",
+        });
+        setIsEditing(false);
+      })
+      .catch((err) => console.error(err));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
@@ -72,7 +85,9 @@ const ProfilePage = () => {
           <div className="flex items-center justify-between p-6 border-b border-slate-700/30">
             <div className="flex items-center space-x-3">
               <User className="w-6 h-6 text-indigo-400" />
-              <h2 className="text-2xl font-bold text-white">Profile Information</h2>
+              <h2 className="text-2xl font-bold text-white">
+                Profile Information
+              </h2>
             </div>
           </div>
 
@@ -85,7 +100,12 @@ const ProfilePage = () => {
                 { label: "Age", icon: Hash, field: "age", type: "number" },
               ]}
               selects={[
-                { label: "Gender", icon: Users, field: "gender", options: ["male", "female", "other", "prefer_not_to_say"] },
+                {
+                  label: "Gender",
+                  icon: Users,
+                  field: "gender",
+                  options: ["male", "female", "other", "prefer_not_to_say"],
+                },
               ]}
               data={profileData}
               onChange={handleInputChange}
@@ -95,12 +115,40 @@ const ProfilePage = () => {
             <ProfileSection
               title="Health & Fitness"
               inputs={[
-                { label: "Weight", icon: Weight, field: "weight", type: "number", suffix: "kg" },
-                { label: "Height", icon: Ruler, field: "height", type: "number", suffix: "cm" },
+                {
+                  label: "Weight",
+                  icon: Weight,
+                  field: "weight",
+                  type: "number",
+                  suffix: "kg",
+                },
+                {
+                  label: "Height",
+                  icon: Ruler,
+                  field: "height",
+                  type: "number",
+                  suffix: "cm",
+                },
               ]}
               selects={[
-                { label: "Fitness Level", icon: Activity, field: "fitnessLevel", options: ["beginner", "intermediate", "advanced", "expert"] },
-                { label: "Primary Goal", icon: Target, field: "goal", options: ["weight_loss", "muscle_gain", "maintenance", "endurance", "strength"] },
+                {
+                  label: "Fitness Level",
+                  icon: Activity,
+                  field: "fitnessLevel",
+                  options: ["beginner", "intermediate", "advanced", "expert"],
+                },
+                {
+                  label: "Primary Goal",
+                  icon: Target,
+                  field: "goal",
+                  options: [
+                    "weight_loss",
+                    "muscle_gain",
+                    "maintenance",
+                    "endurance",
+                    "strength",
+                  ],
+                },
               ]}
               data={profileData}
               onChange={handleInputChange}
@@ -108,7 +156,9 @@ const ProfilePage = () => {
             />
 
             <div className="space-y-4">
-              <h3 className="text-sm font-medium text-slate-300">Account Information</h3>
+              <h3 className="text-sm font-medium text-slate-300">
+                Account Information
+              </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <ProfileSelect
                   label="Timezone"
@@ -117,7 +167,14 @@ const ProfilePage = () => {
                   value={profileData.timezone}
                   onChange={handleInputChange}
                   isEditing={isEditing}
-                  options={["UTC-5", "UTC+0", "UTC+5", "Asia/Kolkata", "UTC+8", "UTC+12"]}
+                  options={[
+                    "UTC-5",
+                    "UTC+0",
+                    "UTC+5",
+                    "Asia/Kolkata",
+                    "UTC+8",
+                    "UTC+12",
+                  ]}
                 />
                 <div className="space-y-2">
                   <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
@@ -127,7 +184,9 @@ const ProfilePage = () => {
                   <input
                     type="date"
                     value={profileData.joinedDate}
-                    onChange={(e) => handleInputChange('joinedDate', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("joinedDate", e.target.value)
+                    }
                     disabled={!isEditing}
                     className="w-full h-12 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-smooth disabled:opacity-70 disabled:cursor-not-allowed"
                   />
@@ -163,7 +222,14 @@ const ProfilePage = () => {
 
 export default ProfilePage;
 
-const ProfileSection = ({ title, inputs = [], selects = [], data, onChange, isEditing }) => (
+const ProfileSection = ({
+  title,
+  inputs = [],
+  selects = [],
+  data,
+  onChange,
+  isEditing,
+}) => (
   <div className="space-y-4">
     <h3 className="text-sm font-medium text-slate-300">{title}</h3>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -196,7 +262,16 @@ const ProfileSection = ({ title, inputs = [], selects = [], data, onChange, isEd
   </div>
 );
 
-const ProfileInput = ({ label, icon: Icon, field, value, onChange, isEditing, type = "text", suffix }) => (
+const ProfileInput = ({
+  label,
+  icon: Icon,
+  field,
+  value,
+  onChange,
+  isEditing,
+  type = "text",
+  suffix,
+}) => (
   <div className="space-y-2">
     <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
       <Icon className="w-4 h-4 text-indigo-400" />
@@ -214,7 +289,15 @@ const ProfileInput = ({ label, icon: Icon, field, value, onChange, isEditing, ty
   </div>
 );
 
-const ProfileSelect = ({ label, icon: Icon, field, value, onChange, isEditing, options }) => (
+const ProfileSelect = ({
+  label,
+  icon: Icon,
+  field,
+  value,
+  onChange,
+  isEditing,
+  options,
+}) => (
   <div className="space-y-2">
     <label className="flex items-center space-x-2 text-sm font-medium text-slate-300">
       <Icon className="w-4 h-4 text-indigo-400" />
@@ -228,7 +311,11 @@ const ProfileSelect = ({ label, icon: Icon, field, value, onChange, isEditing, o
       style={{ color: "#fff" }}
     >
       {options.map((opt) => (
-        <option key={opt} value={opt} style={{ color: "#1e293b", backgroundColor: "#f8fafc" }}>
+        <option
+          key={opt}
+          value={opt}
+          style={{ color: "#1e293b", backgroundColor: "#f8fafc" }}
+        >
           {opt}
         </option>
       ))}

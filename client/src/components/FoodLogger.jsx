@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Calendar, Plus, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "../axios";
+import axiosInstance from "../axiosInstance";
 
 const FoodLogger = () => {
   const queryClient = useQueryClient();
@@ -21,7 +21,7 @@ const FoodLogger = () => {
   const { data: foodsData = [] } = useQuery({
     queryKey: ["foods"],
     queryFn: async () => {
-      const res = await axios.get("/food");
+      const res = await axiosInstance.get("/food");
       return res.data || [];
     },
   });
@@ -34,14 +34,14 @@ const FoodLogger = () => {
 
   const createFood = useMutation({
     mutationFn: async (food) => {
-      await axios.post("/food", food);
+      await axiosInstance.post("/food", food);
     },
     onSuccess: () => queryClient.invalidateQueries(["foods"]),
   });
 
   const deleteFood = useMutation({
     mutationFn: async (id) => {
-      await axios.delete(`/food/${id}`);
+      await axiosInstance.delete(`/food/${id}`);
     },
     onSuccess: () => queryClient.invalidateQueries(["foods"]),
   });

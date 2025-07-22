@@ -1,6 +1,6 @@
 // src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "../axios";
+import axiosInstance from "../axiosInstance";
 
 const AuthContext = createContext(undefined);
 
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async (token) => {
     try {
-      const res = await axios.get("/auth/profile", {
+      const res = await axiosInstance.get("/auth/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data);
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post("/auth/login", { email, password });
+      const res = await axiosInstance.post("/auth/login", { email, password });
       const token = res.data.token;
       localStorage.setItem("token", token);
       setIsAuthenticated(true);
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password) => {
     try {
-      await axios.post("/auth/signup", {
+      await axiosInstance.post("/auth/signup", {
         email,
         password,
         username: email.split("@")[0],
