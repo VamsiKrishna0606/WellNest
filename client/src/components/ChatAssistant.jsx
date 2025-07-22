@@ -18,9 +18,13 @@ const ChatAssistant = forwardRef((props, ref) => {
   }));
 
   const speakOutLoud = (text) => {
+    if (!text || typeof window === "undefined") return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
+    utterance.pitch = 1;
+    utterance.rate = 1;
+    utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
   };
 
@@ -33,7 +37,14 @@ const ChatAssistant = forwardRef((props, ref) => {
         const res = await axios.post("/api/chatbot", { message: msg });
         const botMessage = { text: res.data.reply, isBot: true };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
+
+        // 🔥 This might help if Chrome paused it for any reason
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+        window.speechSynthesis.cancel();
         speakOutLoud(res.data.reply);
+
         setInputText("");
       } catch (error) {
         console.error(error);
