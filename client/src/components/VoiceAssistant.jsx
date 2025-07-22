@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "./ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "./ui/tooltip";
 
 const VoiceAssistant = ({ onTextCaptured }) => {
   const [isListening, setIsListening] = useState(false);
@@ -17,7 +22,15 @@ const VoiceAssistant = ({ onTextCaptured }) => {
       setIsListening(false);
     };
 
-    if (isListening) recognition.start();
+    if (isListening) {
+      // 🔥 Cancel any bot speaking when user starts speaking
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+
+      recognition.start();
+    }
+
     return () => recognition.stop();
   }, [isListening, onTextCaptured]);
 

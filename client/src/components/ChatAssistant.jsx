@@ -30,32 +30,26 @@ const ChatAssistant = forwardRef((props, ref) => {
 
   const sendMessage = async (msg = inputText) => {
     if (msg.trim()) {
-      const userMessage = { text: msg, isBot: false };
-      setMessages((prevMessages) => [...prevMessages, userMessage]);
+        const userMessage = { text: msg, isBot: false };
+        setMessages((prevMessages) => [...prevMessages, userMessage]);
 
-      try {
-        const res = await axios.post("/api/chatbot", { message: msg });
-        const botMessage = { text: res.data.reply, isBot: true };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
-
-        // 🔥 This might help if Chrome paused it for any reason
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
+        try {
+            const res = await axios.post("/api/chatbot", { message: msg });
+            const botMessage = { text: res.data.reply, isBot: true };
+            setMessages((prevMessages) => [...prevMessages, botMessage]);
+            speakOutLoud(res.data.reply);
+            setInputText("");
+        } catch (error) {
+            console.error(error);
+            const botMessage = {
+                text: "Something went wrong. Please try again later.",
+                isBot: true,
+            };
+            setMessages((prevMessages) => [...prevMessages, botMessage]);
         }
-        window.speechSynthesis.cancel();
-        speakOutLoud(res.data.reply);
-
-        setInputText("");
-      } catch (error) {
-        console.error(error);
-        const botMessage = {
-          text: "Something went wrong. Please try again later.",
-          isBot: true,
-        };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
-      }
     }
-  };
+};
+
 
   return (
     <>
