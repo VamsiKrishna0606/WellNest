@@ -18,7 +18,7 @@ const app = express();
 app.use(express.json());
 app.use(
   cors({
-    origin: ["http://localhost:5173", "https://well-nest-eta.vercel.app"],
+    origin: ["http://localhost:5173", "https://well-nest-eta.vercel.app","http://localhost:8080"],
     credentials: true,
   })
 );
