@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async (token) => {
     try {
-      const res = await axios.get("/api/auth/profile", {
+      const res = await axios.get("/auth/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data);
@@ -39,7 +39,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const res = await axios.post("/api/auth/login", { email, password });
+      const res = await axios.post("/auth/login", { email, password });
       const token = res.data.token;
       localStorage.setItem("token", token);
       setIsAuthenticated(true);
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password) => {
     try {
-      await axios.post("/api/auth/signup", {
+      await axios.post("/auth/signup", {
         email,
         password,
         username: email.split("@")[0],

@@ -21,7 +21,7 @@ const FoodLogger = () => {
   const { data: foodsData = [] } = useQuery({
     queryKey: ["foods"],
     queryFn: async () => {
-      const res = await axios.get("/api/food");
+      const res = await axios.get("/food");
       return res.data || [];
     },
   });
@@ -34,14 +34,14 @@ const FoodLogger = () => {
 
   const createFood = useMutation({
     mutationFn: async (food) => {
-      await axios.post("/api/food", food);
+      await axios.post("/food", food);
     },
     onSuccess: () => queryClient.invalidateQueries(["foods"]),
   });
 
   const deleteFood = useMutation({
     mutationFn: async (id) => {
-      await axios.delete(`/api/food/${id}`);
+      await axios.delete(`/food/${id}`);
     },
     onSuccess: () => queryClient.invalidateQueries(["foods"]),
   });

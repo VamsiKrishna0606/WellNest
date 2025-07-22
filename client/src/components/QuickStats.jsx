@@ -5,7 +5,7 @@ const QuickStats = () => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ["stats"],
     queryFn: async () => {
-      const res = await axios.get("/api/stats");
+      const res = await axios.get("/stats");
       return res.data;
     },
   });

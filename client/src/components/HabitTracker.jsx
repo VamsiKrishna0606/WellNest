@@ -50,7 +50,7 @@ const HabitTracker = () => {
   const { data } = useQuery({
     queryKey: ["habits"],
     queryFn: async () => {
-      const res = await axios.get("/api/habits");
+      const res = await axios.get("/habits");
       return res.data || [];
     },
   });
@@ -59,21 +59,21 @@ const HabitTracker = () => {
 
   const createHabit = useMutation({
     mutationFn: async (habit) => {
-      await axios.post("/api/habits", habit);
+      await axios.post("/habits", habit);
     },
     onSuccess: () => queryClient.invalidateQueries(["habits"]),
   });
 
   const updateHabit = useMutation({
     mutationFn: async ({ id, date }) => {
-      await axios.patch(`/api/habits/${id}`, { date });
+      await axios.patch(`/habits/${id}`, { date });
     },
     onSuccess: () => queryClient.invalidateQueries(["habits"]),
   });
 
   const deleteHabit = useMutation({
     mutationFn: async (id) => {
-      await axios.delete(`/api/habits/${id}`);
+      await axios.delete(`/habits/${id}`);
     },
     onSuccess: () => queryClient.invalidateQueries(["habits"]),
   });

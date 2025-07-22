@@ -31,14 +31,14 @@ const UserGoalsModal = ({ isOpen, onClose }) => {
   const { data: userGoals } = useQuery({
     queryKey: ["userGoals"],
     queryFn: async () => {
-      const res = await axios.get("/api/goals");
+      const res = await axios.get("/goals");
       return res.data;
     },
   });
 
   const mutation = useMutation({
     mutationFn: async (goalsData) => {
-      await axios.post("/api/goals", {
+      await axios.post("/goals", {
         dailySteps: goalsData.dailySteps,
         dailyCalories: goalsData.dailyCalories,
         weeklyWorkouts: goalsData.weeklyWorkouts,

@@ -40,7 +40,7 @@ const ChatAssistant = forwardRef((props, ref) => {
       setMessages((prevMessages) => [...prevMessages, userMessage]);
 
       try {
-        const res = await axios.post("/api/chatbot", { message: msg });
+        const res = await axios.post("/chatbot", { message: msg });
         const botMessage = { text: res.data.reply, isBot: true };
         setMessages((prevMessages) => [...prevMessages, botMessage]);
         speakOutLoud(res.data.reply);

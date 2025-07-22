@@ -1,29 +1,24 @@
 import Habit from "../models/Habit.js";
 import FoodLog from "../models/FoodLog.js";
 import UserGoals from "../models/UserGoals.js";
+import User from "../models/User.js";
+import { getUserTimezoneRange } from "../utils/dateHelpers.js";
 
 export const getStats = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const user = await User.findById(req.user.id);
+    const timezone = user.timezone;
+    const { start: today, end: tomorrow } = getUserTimezoneRange(new Date(), timezone);
 
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
+    const todayISO = today.toISOString().split("T")[0];
 
-    const todayISO = today.toLocaleDateString("en-CA");
-
-    // ✅ Fetch Data
-    const habits = (await Habit.find({ userId })) || [];
-    const userGoals = await UserGoals.findOne({ userId });
+    const habits = (await Habit.find({ userId: user._id })) || [];
+    const userGoals = await UserGoals.findOne({ userId: user._id });
     const dailyCaloriesGoal = userGoals?.calories || 2000;
 
-    // ✅ Filter only habits created today, EXACTLY like your UI
     const todayHabits = habits.filter((h) => {
       const start = new Date(h.startDate).toISOString().split("T")[0];
-      const end = h.endDate
-        ? new Date(h.endDate).toISOString().split("T")[0]
-        : null;
+      const end = h.endDate ? new Date(h.endDate).toISOString().split("T")[0] : null;
       if (!end) return todayISO >= start;
       return todayISO >= start && todayISO <= end;
     });
@@ -32,7 +27,7 @@ export const getStats = async (req, res) => {
 
     const completedHabitsToday = todayHabits.filter((h) =>
       h.completedDates.some(
-        (date) => new Date(date).toLocaleDateString("en-CA") === todayISO
+        (date) => new Date(date).toISOString().split("T")[0] === todayISO
       )
     ).length;
 
@@ -40,9 +35,8 @@ export const getStats = async (req, res) => {
       ? Math.round((completedHabitsToday / totalHabitsToday) * 100)
       : 0;
 
-    // ✅ Today's Calories
     const foodLogsToday = await FoodLog.find({
-      userId,
+      userId: user._id,
       date: { $gte: today, $lt: tomorrow },
     });
 
@@ -57,10 +51,8 @@ export const getStats = async (req, res) => {
         )
       : 0;
 
-    // ✅ Today's Goal % — avg of habits and calories
     const todayGoalPercent = Math.round((habitsPercent + caloriesPercent) / 2);
 
-    // ✅ Streak (leave this as is)
     const completedDatesSet = new Set();
     habits.forEach((habit) => {
       habit.completedDates.forEach((date) => {
@@ -82,7 +74,6 @@ export const getStats = async (req, res) => {
       }
     }
 
-    // ✅ Response
     res.json({
       streak: streakCount,
       caloriesToday,

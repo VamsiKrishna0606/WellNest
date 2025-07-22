@@ -17,7 +17,7 @@ const JournalWidget = () => {
   const { data: journals = [] } = useQuery({
     queryKey: ["journals"],
     queryFn: async () => {
-      const res = await axios.get("/api/journal");
+      const res = await axios.get("/journal");
       return res.data || [];
     },
   });
@@ -26,7 +26,7 @@ const JournalWidget = () => {
 
   const createOrUpdateJournal = useMutation({
     mutationFn: async (journalData) => {
-      await axios.post("/api/journal", journalData);
+      await axios.post("/journal", journalData);
     },
     onSuccess: () => queryClient.invalidateQueries(["journals"]),
   });
