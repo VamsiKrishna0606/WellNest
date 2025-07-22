@@ -31,7 +31,8 @@ const AppRoutes = () => {
           <Route path="/habit" element={<HabitPage />} />
           <Route path="/food" element={<FoodPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
-          <Route path="/profile" element={<ProfilePage />} /> {/* ✅ Add this */}
+          <Route path="/profile" element={<ProfilePage />} />{" "}
+          {/* ✅ Add this */}
           <Route path="/login" element={<Navigate to="/dashboard" replace />} />
         </>
       ) : (
@@ -58,5 +59,6 @@ const App = () => (
     </TooltipProvider>
   </QueryClientProvider>
 );
+console.log("PROD URL:", import.meta.env.VITE_API_URL_PROD);
 
 export default App;
