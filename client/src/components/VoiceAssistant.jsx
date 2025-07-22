@@ -1,3 +1,4 @@
+// src/components/VoiceAssistant.jsx
 import { useEffect, useState } from "react";
 import {
   Tooltip,
@@ -23,11 +24,9 @@ const VoiceAssistant = ({ onTextCaptured }) => {
     };
 
     if (isListening) {
-      // 🔥 Cancel any bot speaking when user starts speaking
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
-
       recognition.start();
     }
 

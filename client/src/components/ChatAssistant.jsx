@@ -1,3 +1,4 @@
+// src/components/ChatAssistant.jsx
 import { useState, forwardRef, useImperativeHandle } from "react";
 import axios from "../axios";
 
@@ -25,31 +26,35 @@ const ChatAssistant = forwardRef((props, ref) => {
     utterance.pitch = 1;
     utterance.rate = 1;
     utterance.volume = 1;
+
+    const voices = window.speechSynthesis.getVoices();
+    utterance.voice =
+      voices.find((voice) => voice.name.includes("Google US English")) || null;
+
     window.speechSynthesis.speak(utterance);
   };
 
   const sendMessage = async (msg = inputText) => {
     if (msg.trim()) {
-        const userMessage = { text: msg, isBot: false };
-        setMessages((prevMessages) => [...prevMessages, userMessage]);
+      const userMessage = { text: msg, isBot: false };
+      setMessages((prevMessages) => [...prevMessages, userMessage]);
 
-        try {
-            const res = await axios.post("/api/chatbot", { message: msg });
-            const botMessage = { text: res.data.reply, isBot: true };
-            setMessages((prevMessages) => [...prevMessages, botMessage]);
-            speakOutLoud(res.data.reply);
-            setInputText("");
-        } catch (error) {
-            console.error(error);
-            const botMessage = {
-                text: "Something went wrong. Please try again later.",
-                isBot: true,
-            };
-            setMessages((prevMessages) => [...prevMessages, botMessage]);
-        }
+      try {
+        const res = await axios.post("/api/chatbot", { message: msg });
+        const botMessage = { text: res.data.reply, isBot: true };
+        setMessages((prevMessages) => [...prevMessages, botMessage]);
+        speakOutLoud(res.data.reply);
+        setInputText("");
+      } catch (error) {
+        console.error(error);
+        const botMessage = {
+          text: "Something went wrong. Please try again later.",
+          isBot: true,
+        };
+        setMessages((prevMessages) => [...prevMessages, botMessage]);
+      }
     }
-};
-
+  };
 
   return (
     <>

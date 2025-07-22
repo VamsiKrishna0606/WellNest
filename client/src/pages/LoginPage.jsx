@@ -1,3 +1,4 @@
+// src/pages/LoginPage.jsx
 import { useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 
@@ -82,13 +83,7 @@ const LoginPage = () => {
                 onClick={handleGoogleSignIn}
                 className="w-full py-3 bg-white text-gray-700 rounded-xl flex items-center justify-center gap-3"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25...z" />
-                  <path fill="#34A853" d="M12 23c...z" />
-                  <path fill="#FBBC05" d="M5.84 14.09...z" />
-                  <path fill="#EA4335" d="M12 5.38...z" />
-                </svg>
-                <span>Sign in with Google</span>
+                <span>Sign in with Google (Demo)</span>
               </button>
 
               <div className="text-center text-sm mt-6">

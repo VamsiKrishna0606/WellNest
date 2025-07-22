@@ -1,3 +1,4 @@
+// src/contexts/AuthContext.jsx
 import React, { createContext, useContext, useState, useEffect } from "react";
 import axios from "../axios";
 
@@ -16,7 +17,6 @@ export const AuthProvider = ({ children }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [user, setUser] = useState(null);
 
-  // Auto-login check on page refresh
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {

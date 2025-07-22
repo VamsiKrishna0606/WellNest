@@ -26,9 +26,7 @@ export const chatWithAssistant = async (req, res) => {
       const casualPrompt = [
         {
           role: "system",
-          content: `You are WellNest, a friendly, human-like AI companion. 
-You can casually chat, make light jokes, and be supportive like a good friend. Don't sound robotic. Be chill, light, and human. 
-Avoid talking about health unless the user specifically asks.`,
+          content: `You are WellNest, a friendly, human-like AI companion. You casually chat, make light jokes, and sound human. Don't lecture about health unless asked.`,
         },
         { role: "user", content: message },
       ];
@@ -46,16 +44,12 @@ Avoid talking about health unless the user specifically asks.`,
     const completedHabitCount = habits.filter((h) => h.completedDates.length >= 3).map((h) => h.name);
     const missedHabitCount = habits.filter((h) => h.completedDates.length < 3).map((h) => h.name);
     const completionRate = habits.length
-      ? Math.round(
-          (habits.reduce((acc, h) => acc + h.completedDates.length, 0) / (habits.length * 7)) * 100
-        )
+      ? Math.round((habits.reduce((acc, h) => acc + h.completedDates.length, 0) / (habits.length * 7)) * 100)
       : 0;
 
     const recentFoodLogs = foodLogs.slice(-7);
     const avgCalories = recentFoodLogs.length
-      ? Math.round(
-          recentFoodLogs.reduce((acc, f) => acc + (f.calories || 0), 0) / recentFoodLogs.length
-        )
+      ? Math.round(recentFoodLogs.reduce((acc, f) => acc + (f.calories || 0), 0) / recentFoodLogs.length)
       : 0;
     const totalProtein = recentFoodLogs.reduce((acc, f) => acc + (f.protein || 0), 0);
     const totalCarbs = recentFoodLogs.reduce((acc, f) => acc + (f.carbs || 0), 0);
@@ -96,9 +90,7 @@ User Question: ${message}
     const wellnessPrompt = [
       {
         role: "system",
-        content: `You are WellNest, a personalized AI wellness coach. 
-When asked about health, habits, hydration, food, or wellness progress, give precise, realistic advice based on user data. 
-Be supportive, brief, and human-like.`,
+        content: `You are WellNest, a personalized AI wellness coach. When asked about health, habits, hydration, food, or wellness progress, give precise, realistic advice based on user data. Be supportive, brief, and human-like.`,
       },
       { role: "user", content: userSummary },
     ];
