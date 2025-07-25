@@ -18,23 +18,31 @@ import chatbotRoutes from "./routes/chatbotRoutes.js";
 const app = express();
 app.use(express.json());
 
-// ✅ CORS - updated cleanly
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:8080",
-      "http://localhost:8081",
-      "https://well-nest-eta.vercel.app",
-      "https://well-nest-gx1f2xdnh-vamsi-krishnas-projects-67b52aa7.vercel.app",
-      "https://well-nest-three.vercel.app",
-      "https://well-nest-j9b1cum4q-vamsi-krishnas-projects-67b52aa7.vercel.app"
-    ],
-    credentials: true,
-  })
-);
+// ✅ Dynamic & Safe CORS Config
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:8080",
+  "http://localhost:8081",
+  "https://well-nest-eta.vercel.app",
+  "https://well-nest-three.vercel.app",
+  "https://well-nest-gx1f2xdnh-vamsi-krishnas-projects-67b52aa7.vercel.app",
+  "https://well-nest-j9b1cum4q-vamsi-krishnas-projects-67b52aa7.vercel.app",
+];
 
-// API routes
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("❌ CORS Blocked: " + origin));
+    }
+  },
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+
+// ✅ API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/habits", habitRoutes);
 app.use("/api/food", foodRoutes);
@@ -44,13 +52,15 @@ app.use("/api/goals", goalsRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 
-// MongoDB connection
+// ✅ MongoDB connection and server start
+const PORT = process.env.PORT || 5000;
+
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
     console.log("✅ MongoDB Connected Successfully");
-    app.listen(process.env.PORT, () => {
-      console.log(`✅ Server running on port ${process.env.PORT}`);
+    app.listen(PORT, () => {
+      console.log(`✅ Server running on port ${PORT}`);
     });
   })
   .catch((err) => console.error("❌ MongoDB Connection Error:", err));
