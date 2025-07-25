@@ -11,7 +11,6 @@ import { Switch } from "./ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../axiosInstance";
 
-
 const emojis = ["🧘", "💧", "🏃", "🍎", "📖", "💪", "🚴", "🎯", "⚡", "🌟"];
 const units = [
   "Minutes",
@@ -87,16 +86,16 @@ const HabitTracker = () => {
     return inputDate > today;
   };
 
-  const getHabitsForDate = (date) =>
+  const getHabitsForDate = (dateStr) =>
     habits.filter((h) => {
       const start = new Date(h.startDate).toISOString().split("T")[0];
       const end = h.endDate
         ? new Date(h.endDate).toISOString().split("T")[0]
         : null;
-      if (!end) {
-        return date >= start;
-      }
-      return date >= start && date <= end;
+
+      if (!start) return false;
+
+      return !end ? dateStr >= start : dateStr >= start && dateStr <= end;
     });
 
   const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
