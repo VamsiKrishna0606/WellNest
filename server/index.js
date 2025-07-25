@@ -26,7 +26,8 @@ app.use(
       "http://localhost:8080",
       "http://localhost:8081",
       "https://well-nest-eta.vercel.app",
-      "https://well-nest-gx1f2xdnh-vamsi-krishnas-projects-67b52aa7.vercel.app"
+      "https://well-nest-gx1f2xdnh-vamsi-krishnas-projects-67b52aa7.vercel.app",
+      "https://well-nest-three.vercel.app",
     ],
     credentials: true,
   })
