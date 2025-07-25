@@ -32,8 +32,8 @@ const habitSchema = new mongoose.Schema(
       default: false,
     },
     startDate: {
-      type: String,
-      default: () => new Date().toISOString().split("T")[0],
+      type: Date,
+      default: Date.now,
     },
     endDate: {
       type: Date,

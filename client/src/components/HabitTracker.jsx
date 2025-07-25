@@ -86,16 +86,18 @@ const HabitTracker = () => {
     return inputDate > today;
   };
 
-  const getHabitsForDate = (dateStr) =>
+  import { DateTime } from "luxon"; // Place at the top with other imports
+
+  const getHabitsForDate = (selectedDateStr) =>
     habits.filter((h) => {
-      const start = new Date(h.startDate).toISOString().split("T")[0];
-      const end = h.endDate
-        ? new Date(h.endDate).toISOString().split("T")[0]
-        : null;
+      const start = DateTime.fromISO(h.startDate || "").startOf("day");
+      const end = h.endDate ? DateTime.fromISO(h.endDate).startOf("day") : null;
 
-      if (!start) return false;
+      const selected = DateTime.fromISO(selectedDateStr).startOf("day");
 
-      return !end ? dateStr >= start : dateStr >= start && dateStr <= end;
+      if (!start.isValid) return false;
+
+      return !end ? selected >= start : selected >= start && selected <= end;
     });
 
   const isCurrentDate = selectedDate === new Date().toISOString().split("T")[0];
