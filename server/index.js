@@ -5,6 +5,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 
+// Route imports
 import authRoutes from "./routes/authRoutes.js";
 import habitRoutes from "./routes/habitRoutes.js";
 import foodRoutes from "./routes/foodRoutes.js";
@@ -16,22 +17,22 @@ import chatbotRoutes from "./routes/chatbotRoutes.js";
 
 const app = express();
 app.use(express.json());
+
+// ✅ CORS - updated cleanly
 app.use(
   cors({
-<<<<<<< HEAD
     origin: [
       "http://localhost:5173",
-      "https://well-nest-eta.vercel.app",
+      "http://localhost:8080",
       "http://localhost:8081",
-      "https://well-nest-gx1f2xdnh-vamsi-krishnas-projects-67b52aa7.vercel.app",
+      "https://well-nest-eta.vercel.app",
+      "https://well-nest-gx1f2xdnh-vamsi-krishnas-projects-67b52aa7.vercel.app"
     ],
-=======
-    origin: ["http://localhost:5173", "https://well-nest-eta.vercel.app","http://localhost:8080"],
->>>>>>> 4f2a8364556127020a96fed11d386dd8de43343f
     credentials: true,
   })
 );
 
+// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/habits", habitRoutes);
 app.use("/api/food", foodRoutes);
@@ -41,6 +42,7 @@ app.use("/api/goals", goalsRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/chatbot", chatbotRoutes);
 
+// MongoDB connection
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
@@ -49,4 +51,4 @@ mongoose
       console.log(`✅ Server running on port ${process.env.PORT}`);
     });
   })
-  .catch((err) => console.log("MongoDB Connection Error:", err));
+  .catch((err) => console.error("❌ MongoDB Connection Error:", err));

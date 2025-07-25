@@ -251,7 +251,7 @@ export const getSummaryForDate = async (req, res) => {
       (total, log) => total + (log.calories || 0),
       0
     );
-
+  
     const totalProtein = foodLogs.reduce(
       (acc, log) => acc + (log.protein || 0),
       0
