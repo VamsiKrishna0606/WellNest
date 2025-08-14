@@ -17,7 +17,6 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import axiosInstance from "../axiosInstance";
 
-
 const COLORS = ["#6366f1", "#8b5cf6", "#06b6d4"];
 
 const mealIcons = {
@@ -42,14 +41,18 @@ const GoalAnalytics = () => {
 
   const { data: analyticsData = {}, isLoading } = useQuery({
     queryKey: ["analytics", activeTab],
-    queryFn: async () => (await axiosInstance.get(`/analytics/${activeTab}`)).data,
+    queryFn: async () =>
+      (await axiosInstance.get(`/analytics/${activeTab}`)).data,
   });
 
   const { data: summaryData } = useQuery({
     queryKey: ["analytics-summary", selectedAnalyticsDate],
     queryFn: async () =>
-      (await axiosInstance.get(`/analytics/summary?date=${selectedAnalyticsDate}`))
-        .data,
+      (
+        await axiosInstance.get(
+          `/analytics/summary?date=${selectedAnalyticsDate}`
+        )
+      ).data,
     enabled: showSpecificDateView,
   });
 
@@ -82,7 +85,10 @@ const GoalAnalytics = () => {
         </div>
 
         <h2 className="text-2xl font-semibold text-white mb-6 gradient-text-light">
-          Daily Summary - {new Date(selectedAnalyticsDate).toLocaleDateString()}
+          Daily Summary -{" "}
+          {new Date(selectedAnalyticsDate)
+            .toLocaleDateString("en-GB")
+            .replaceAll("/", "-")}
         </h2>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

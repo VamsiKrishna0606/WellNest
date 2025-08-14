@@ -1,7 +1,12 @@
+// TOP OF FILE
 import { useState } from "react";
 import { Calendar, Plus, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "../axiosInstance";
+
+// ✅ Load env keys
+const APP_ID = import.meta.env.VITE_NUTRITIONIX_APP_ID;
+const API_KEY = import.meta.env.VITE_NUTRITIONIX_API_KEY;
 
 const FoodLogger = () => {
   const queryClient = useQueryClient();
@@ -17,6 +22,38 @@ const FoodLogger = () => {
     carbs: "",
     fats: "",
   });
+
+  const fetchFoodMacros = async () => {
+    if (!newFood.name.trim()) return;
+    try {
+      const res = await fetch(
+        "https://trackapi.nutritionix.com/v2/natural/nutrients",
+        {
+          method: "POST",
+          headers: {
+            "x-app-id": APP_ID,
+            "x-app-key": API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ query: newFood.name }),
+        }
+      );
+
+      const data = await res.json();
+      const food = data.foods?.[0];
+      if (!food) return;
+
+      setNewFood((prev) => ({
+        ...prev,
+        calories: food.nf_calories || "",
+        protein: food.nf_protein || "",
+        carbs: food.nf_total_carbohydrate || "",
+        fats: food.nf_total_fat || "",
+      }));
+    } catch (err) {
+      console.error("Error fetching food macros:", err);
+    }
+  };
 
   const { data: foodsData = [] } = useQuery({
     queryKey: ["foods"],
@@ -100,7 +137,7 @@ const FoodLogger = () => {
             type="date"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value)}
-            max={new Date().toLocaleDateString("en-CA")} // This blocks future dates
+            max={new Date().toLocaleDateString("en-CA")}
             className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
           />
         </div>
@@ -117,14 +154,26 @@ const FoodLogger = () => {
           </button>
         ) : (
           <div className="space-y-3">
-            <input
-              type="text"
-              value={newFood.name}
-              onChange={(e) => setNewFood({ ...newFood, name: e.target.value })}
-              placeholder="Food name..."
-              disabled={false}
-              className="w-full px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white"
-            />
+            {/* 🍱 Food name + Autofill button */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newFood.name}
+                onChange={(e) =>
+                  setNewFood({ ...newFood, name: e.target.value })
+                }
+                placeholder="Food name..."
+                className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white"
+              />
+              <button
+                type="button"
+                onClick={fetchFoodMacros}
+                className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm"
+              >
+                Autofill
+              </button>
+            </div>
+
             <div className="flex space-x-3">
               <input
                 type="number"
@@ -133,7 +182,6 @@ const FoodLogger = () => {
                   setNewFood({ ...newFood, calories: e.target.value })
                 }
                 placeholder="Calories"
-                disabled={false}
                 className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white"
               />
               <select
@@ -141,7 +189,6 @@ const FoodLogger = () => {
                 onChange={(e) =>
                   setNewFood({ ...newFood, mealType: e.target.value })
                 }
-                disabled={false}
                 className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-slate-800"
               >
                 <option value="Breakfast">Breakfast</option>
@@ -156,39 +203,48 @@ const FoodLogger = () => {
                 Macros (optional)
               </label>
               <div className="grid grid-cols-3 gap-3">
-                <input
-                  type="number"
-                  step="0.1"
-                  value={newFood.protein}
-                  onChange={(e) =>
-                    setNewFood({ ...newFood, protein: e.target.value })
-                  }
-                  placeholder="Protein (g)"
-                  disabled={false}
-                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
-                />
-                <input
-                  type="number"
-                  step="0.1"
-                  value={newFood.carbs}
-                  onChange={(e) =>
-                    setNewFood({ ...newFood, carbs: e.target.value })
-                  }
-                  placeholder="Carbs (g)"
-                  disabled={false}
-                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
-                />
-                <input
-                  type="number"
-                  step="0.1"
-                  value={newFood.fats}
-                  onChange={(e) =>
-                    setNewFood({ ...newFood, fats: e.target.value })
-                  }
-                  placeholder="Fats (g)"
-                  disabled={false}
-                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
-                />
+                <div className="flex flex-col">
+                  <label className="text-xs text-slate-400 mb-1">
+                    Protein (g)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={newFood.protein}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, protein: e.target.value })
+                    }
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-slate-400 mb-1">
+                    Carbs (g)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={newFood.carbs}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, carbs: e.target.value })
+                    }
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                  />
+                </div>
+                <div className="flex flex-col">
+                  <label className="text-xs text-slate-400 mb-1">
+                    Fats (g)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={newFood.fats}
+                    onChange={(e) =>
+                      setNewFood({ ...newFood, fats: e.target.value })
+                    }
+                    className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white text-sm"
+                  />
+                </div>
               </div>
             </div>
 
@@ -220,6 +276,7 @@ const FoodLogger = () => {
         )}
       </div>
 
+      {/* Rest of the table (unchanged) */}
       <div className="space-y-4 flex-1 overflow-y-auto">
         {Object.keys(groupedFoods).length === 0 ? (
           <div className="text-center py-8 text-slate-400">

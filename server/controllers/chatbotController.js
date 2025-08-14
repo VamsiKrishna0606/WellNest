@@ -1,122 +1,160 @@
-import User from "../models/User.js";
-import UserGoals from "../models/UserGoals.js";
+// ✅ Updated chatbotController.js
+import dotenv from "dotenv";
+dotenv.config();
 import Habit from "../models/Habit.js";
 import FoodLog from "../models/FoodLog.js";
 import Journal from "../models/Journal.js";
-import { askGPT } from "../utils/gpt.js";
-import { getUserTimezoneRange } from "../utils/dateHelpers.js";
+import UserGoals from "../models/UserGoals.js";
+import User from "../models/User.js";
+import { DateTime } from "luxon";
+import OpenAI from "openai";
 
-const analyzeMood = (journals) => {
-  if (!journals.length) return "No entries yet";
-  const recent = journals
-    .slice(-5)
-    .map((j) => j.entry.toLowerCase())
-    .join(" ");
-  if (/happy|grateful|calm|motivated|relaxed/.test(recent)) return "Positive";
-  if (/tired|stressed|anxious|angry|down/.test(recent)) return "Negative";
-  return "Neutral";
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
+const getToday = (timeZone) =>
+  DateTime.now().setZone(timeZone).startOf("day").toISODate();
+
+const formatDate = (jsDate, timeZone) =>
+  DateTime.fromJSDate(jsDate).setZone(timeZone).toISODate();
+
+const filterByDate = (data, date, timeZone) =>
+  data.filter((item) => formatDate(item.date, timeZone) === date);
+
+const filterByRange = (data, startDate, endDate, timeZone) =>
+  data.filter((item) => {
+    const d = DateTime.fromJSDate(item.date).setZone(timeZone).toISODate();
+    return d >= startDate && d <= endDate;
+  });
+
+const buildChatPrompt = (ctx) => {
+  return `
+You're WellNest AI. Speak like a chill fitness buddy, not a formal assistant.
+
+Give your reply in **under 100 words**, **include real stats** (habit %, calories, macros, mood, journal), and **encourage** or **tease** based on the data.
+
+Always call the user **"Buddy"**, never use their name.
+
+Here's today’s context:
+- Habit completion: ${ctx.habitCompletion}% (${ctx.completedHabits}/${
+    ctx.totalHabits
+  })
+- Calories: ${ctx.totalCaloriesToday} kcal
+- Macros: P ${ctx.totalProtein}g / C ${ctx.totalCarbs}g / F ${ctx.totalFats}g
+- Mood rating: ${ctx.mood}
+- Journal: "${ctx.journalEntry || "No journal today."}"
+- Weekly Cal: ${ctx.weeklyCalories}, Monthly Cal: ${
+    ctx.monthlyCalories
+  }, Yearly Cal: ${ctx.yearlyCalories}
+- Goals: ${ctx.goalsText}
+
+Speak like a real person who knows this data and actually cares , speak cool and little as possible and be informative. 
+Use emojis sparingly but effectively. Be concise, hype me up or tease me if needed. No robotic tone.
+  `;
 };
 
 export const chatWithAssistant = async (req, res) => {
   try {
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: "Unauthorized request." });
+    }
+
     const userId = req.user.id;
-    const { message } = req.body;
-
     const user = await User.findById(userId);
-    const timezone = user.timezone;
-    const { start: todayStart, end: tomorrowStart } = getUserTimezoneRange(
-      new Date(),
-      timezone
-    );
+    const timeZone = user?.timezone || "Asia/Kolkata";
+    const today = getToday(timeZone);
+    const startOfWeek = DateTime.now()
+      .setZone(timeZone)
+      .startOf("week")
+      .toISODate();
+    const startOfMonth = DateTime.now()
+      .setZone(timeZone)
+      .startOf("month")
+      .toISODate();
+    const startOfYear = DateTime.now()
+      .setZone(timeZone)
+      .startOf("year")
+      .toISODate();
 
-    const [goals, habits, foodLogs, journals] = await Promise.all([
-      UserGoals.findOne({ userId }),
+    const [habits, foodLogs, journal, goals] = await Promise.all([
       Habit.find({ userId }),
-      FoodLog.find({ userId }).sort({ date: -1 }),
-      Journal.find({ userId }),
+      FoodLog.find({ userId }),
+      Journal.findOne({ userId, date: today }),
+      UserGoals.findOne({ userId }),
     ]);
 
-    const todayStr = todayStart.toISOString().split("T")[0];
-    const todayLogs = foodLogs.filter(
-      (f) => f.date >= todayStart && f.date < tomorrowStart
+    const todayHabits = habits.filter((h) => {
+      const start = DateTime.fromISO(h.startDate).toISODate();
+      const end = h.endDate ? DateTime.fromISO(h.endDate).toISODate() : null;
+      return start <= today && (!end || today <= end);
+    });
+    const completedHabits = todayHabits.filter((h) =>
+      h.completedDates.includes(today)
     );
-    const sevenDaysAgo = new Date(todayStart);
-    sevenDaysAgo.setUTCDate(todayStart.getUTCDate() - 6);
-    const weeklyLogs = foodLogs.filter(
-      (f) => f.date >= sevenDaysAgo && f.date < tomorrowStart
+    const habitCompletion = todayHabits.length
+      ? Math.round((completedHabits.length / todayHabits.length) * 100)
+      : 0;
+
+    const foodToday = filterByDate(foodLogs, today, timeZone);
+    const totalCaloriesToday = foodToday.reduce(
+      (sum, f) => sum + (f.calories || 0),
+      0
     );
-    const currentMonth = todayStart.getUTCMonth();
-    const monthlyLogs = foodLogs.filter(
-      (f) => f.date.getUTCMonth() === currentMonth
+    const totalProtein = foodToday.reduce(
+      (sum, f) => sum + (f.protein || 0),
+      0
     );
-    const lastMonth = new Date(todayStart);
-    lastMonth.setUTCMonth(lastMonth.getUTCMonth() - 1);
+    const totalCarbs = foodToday.reduce((sum, f) => sum + (f.carbs || 0), 0);
+    const totalFats = foodToday.reduce((sum, f) => sum + (f.fats || 0), 0);
 
-    const reduceCalories = (logs) =>
-      logs.reduce((acc, log) => acc + (log.calories || 0), 0);
-    const todayCalories = reduceCalories(todayLogs);
-    const weeklyCalories = reduceCalories(weeklyLogs);
-    const thisMonthCalories = reduceCalories(monthlyLogs);
-    const lastMonthCalories = reduceCalories(
-      foodLogs.filter((f) => f.date.getUTCMonth() === lastMonth.getUTCMonth())
+    const foodWeekly = filterByRange(foodLogs, startOfWeek, today, timeZone);
+    const foodMonthly = filterByRange(foodLogs, startOfMonth, today, timeZone);
+    const foodYearly = filterByRange(foodLogs, startOfYear, today, timeZone);
+
+    const weeklyCalories = foodWeekly.reduce(
+      (sum, f) => sum + (f.calories || 0),
+      0
+    );
+    const monthlyCalories = foodMonthly.reduce(
+      (sum, f) => sum + (f.calories || 0),
+      0
+    );
+    const yearlyCalories = foodYearly.reduce(
+      (sum, f) => sum + (f.calories || 0),
+      0
     );
 
-    const todayCompletedHabits = habits.filter((h) =>
-      h.completedDates.includes(todayStr)
-    ).length;
-    const mood = analyzeMood(journals);
-    const journalKeywords = journals
-      .slice(-5)
-      .map((j) => j.entry.split(" ").slice(0, 3).join(" "))
-      .join("; ");
+    const mood = journal?.moodRating || "Not recorded";
+    const journalEntry = journal?.entry || "";
+    const goalsText = goals ? JSON.stringify(goals) : "Not set";
 
-    const context = `
-User Info:
-- Name: ${user.username}
-- Age: ${user.age || "Not set"}, Weight: ${user.weight || "Not set"}, Height: ${
-      user.height || "Not set"
-    }
-- Fitness Level: ${user.fitnessLevel || "Not set"}
-- Goal: ${user.goal || "Not set"}
+    const prompt = buildChatPrompt({
+      habitCompletion,
+      completedHabits: completedHabits.length,
+      totalHabits: todayHabits.length,
+      totalCaloriesToday,
+      totalProtein,
+      totalCarbs,
+      totalFats,
+      mood,
+      journalEntry,
+      weeklyCalories,
+      monthlyCalories,
+      yearlyCalories,
+      goalsText,
+    });
 
-Goals:
-- Daily Calories: ${goals?.dailyCalories || "Not set"}
-- Daily Steps: ${goals?.dailySteps || "Not set"}
-- Hydration Goal: ${goals?.hydrationGoal || "Not set"}
+    const response = await openai.chat.completions.create({
+      model: "gpt-4",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.75,
+    });
 
-Today's Summary:
-- Calories Consumed: ${todayCalories}
-- Habits Completed: ${todayCompletedHabits} / ${habits.length}
-- Mood: ${mood}
-- Recent Journal Keywords: ${journalKeywords}
-
-Weekly Summary:
-- Total Calories: ${weeklyCalories}
-- Active Days (meals logged / habits completed): Approx ${
-      weeklyLogs.length
-    } days
-
-Monthly Comparison:
-- This Month Calories: ${thisMonthCalories}
-- Last Month Calories: ${lastMonthCalories}
-`;
-
-    const prompt = [
-      {
-        role: "system",
-        content:
-          "You are WellNest, a human-like wellness AI coach. Be short, helpful, friendly.",
-      },
-      {
-        role: "user",
-        content: `Here is my data:\n${context}\n\nQuestion: ${message}`,
-      },
-    ];
-
-    const gptResponse = await askGPT(prompt);
-    res.json({ reply: gptResponse });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Chatbot error." });
+    res.json({ reply: response.choices[0].message.content.trim() });
+  } catch (err) {
+    console.error("Chatbot error:", err.message);
+    res.status(500).json({
+      error:
+        "Could not generate personalized response. Please try again later.",
+    });
   }
 };

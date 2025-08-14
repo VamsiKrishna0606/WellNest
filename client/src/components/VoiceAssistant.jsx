@@ -1,5 +1,5 @@
-// src/components/VoiceAssistant.jsx
-import { useEffect, useState } from "react";
+// ✅ Updated VoiceAssistant.jsx
+import { useEffect, useRef, useState } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -9,6 +9,7 @@ import {
 
 const VoiceAssistant = ({ onTextCaptured }) => {
   const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
 
   useEffect(() => {
     if (!("webkitSpeechRecognition" in window)) return;
@@ -16,6 +17,7 @@ const VoiceAssistant = ({ onTextCaptured }) => {
     const recognition = new window.webkitSpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = false;
+    recognition.maxAlternatives = 1;
 
     recognition.onresult = (event) => {
       const transcript = event.results[0][0].transcript;
@@ -23,22 +25,36 @@ const VoiceAssistant = ({ onTextCaptured }) => {
       setIsListening(false);
     };
 
+    recognition.onerror = (event) => {
+      console.error("Speech recognition error:", event.error);
+      setIsListening(false);
+    };
+
+    recognition.onnomatch = () => {
+      console.warn("Speech not recognized.");
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+  }, [onTextCaptured]);
+
+  useEffect(() => {
     if (isListening) {
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
-      recognition.start();
+      recognitionRef.current?.start();
+    } else {
+      recognitionRef.current?.stop();
     }
-
-    return () => recognition.stop();
-  }, [isListening, onTextCaptured]);
+  }, [isListening]);
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            onClick={() => setIsListening(!isListening)}
+            onClick={() => setIsListening((prev) => !prev)}
             className={`w-20 h-20 rounded-full flex items-center justify-center transition-bounce neon-glow floating-element ${
               isListening
                 ? "bg-gradient-to-r from-indigo-600 to-blue-600 animate-pulse scale-110"

@@ -1,17 +1,35 @@
-// src/components/ChatAssistant.jsx
-import { useState, forwardRef, useImperativeHandle } from "react";
+import {
+  useState,
+  useEffect,
+  forwardRef,
+  useImperativeHandle,
+  useRef,
+} from "react";
 import axiosInstance from "../axiosInstance";
 
-
 const ChatAssistant = forwardRef((props, ref) => {
+  const [voiceInputTriggered, setVoiceInputTriggered] = useState(false);
+  const [messages, setMessages] = useState(() => {
+    const saved = localStorage.getItem("chatMessages");
+    return saved
+      ? JSON.parse(saved)
+      : [{ text: "Hi there! How can I help you today?", isBot: true }];
+  });
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    { text: "Hi there! How can I help you today?", isBot: true },
-  ]);
   const [inputText, setInputText] = useState("");
+  const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem("chatMessages", JSON.stringify(messages));
+    if (chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
   useImperativeHandle(ref, () => ({
     handleVoiceFromOutside(spokenText) {
+      console.log("🎤 Voice input received in ChatAssistant:", spokenText);
+      setVoiceInputTriggered(true);
       setInputText(spokenText);
       setTimeout(() => {
         sendMessage(spokenText);
@@ -21,38 +39,59 @@ const ChatAssistant = forwardRef((props, ref) => {
 
   const speakOutLoud = (text) => {
     if (!text || typeof window === "undefined") return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+
+    const synth = window.speechSynthesis;
+    synth.cancel();
+
+    const cleanText = text.replace(/[🌀-🫐]/gu, "");
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = "en-US";
     utterance.pitch = 1;
     utterance.rate = 1;
     utterance.volume = 1;
 
-    const voices = window.speechSynthesis.getVoices();
-    utterance.voice =
-      voices.find((voice) => voice.name.includes("Google US English")) || null;
+    const loadVoices = () => {
+      const voices = synth.getVoices();
+      const voice =
+        voices.find((v) => v.name.includes("Google US English")) ||
+        voices.find((v) => v.lang === "en-US") ||
+        voices[0];
 
-    window.speechSynthesis.speak(utterance);
+      if (voice) {
+        utterance.voice = voice;
+        synth.speak(utterance);
+      } else {
+        setTimeout(loadVoices, 100);
+      }
+    };
+
+    loadVoices();
   };
 
   const sendMessage = async (msg = inputText) => {
     if (msg.trim()) {
       const userMessage = { text: msg, isBot: false };
-      setMessages((prevMessages) => [...prevMessages, userMessage]);
+      setMessages((prev) => [...prev, userMessage]);
 
       try {
         const res = await axiosInstance.post("/chatbot", { message: msg });
         const botMessage = { text: res.data.reply, isBot: true };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
-        speakOutLoud(res.data.reply);
-        setInputText("");
+        setMessages((prev) => [...prev, botMessage]);
+
+        if (voiceInputTriggered === true) {
+          setTimeout(() => speakOutLoud(res.data.reply), 300);
+        }
+        setVoiceInputTriggered(false);
       } catch (error) {
-        console.error(error);
         const botMessage = {
           text: "Something went wrong. Please try again later.",
           isBot: true,
         };
-        setMessages((prevMessages) => [...prevMessages, botMessage]);
+        setMessages((prev) => [...prev, botMessage]);
+      } finally {
+        setVoiceInputTriggered(false);
+        setInputText("");
       }
     }
   };
@@ -65,18 +104,14 @@ const ChatAssistant = forwardRef((props, ref) => {
       >
         {isOpen ? (
           <svg
-            className="w-8 h-8 transition-transform duration-300 rotate-90"
+            className="w-8 h-8 rotate-90"
             fill="currentColor"
             viewBox="0 0 24 24"
           >
             <path d="M18.3 5.71c-.39-.39-1.02-.39-1.41 0L12 10.59 7.11 5.7c-.39-.39-1.02-.39-1.41 0-.39.39-.39 1.02 0 1.41L10.59 12 5.7 16.89c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0L12 13.41l4.89 4.89c.39.39 1.02.39 1.41 0 .39-.39.39-1.02 0-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z" />
           </svg>
         ) : (
-          <svg
-            className="w-8 h-8 transition-transform duration-300"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
+          <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
             <path d="M20 2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h4l4 4 4-4h4c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z" />
           </svg>
         )}
@@ -121,6 +156,7 @@ const ChatAssistant = forwardRef((props, ref) => {
                 </div>
               </div>
             ))}
+            <div ref={chatEndRef}></div>
           </div>
 
           <div className="p-4 border-t border-slate-700/40">
@@ -131,7 +167,7 @@ const ChatAssistant = forwardRef((props, ref) => {
                 onChange={(e) => setInputText(e.target.value)}
                 placeholder="Type a message..."
                 className="flex-1 px-4 py-3 bg-slate-800/60 border border-slate-600/50 rounded-xl text-slate-200 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30 transition-smooth backdrop-blur-sm"
-                onKeyPress={(e) => e.key === "Enter" && sendMessage()}
+                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               />
               <button
                 onClick={() => sendMessage()}

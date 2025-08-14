@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Calendar, X } from "lucide-react";
+import { DateTime } from "luxon";
 import {
   Select,
   SelectContent,
@@ -85,8 +86,6 @@ const HabitTracker = () => {
     inputDate.setHours(0, 0, 0, 0);
     return inputDate > today;
   };
-
-  import { DateTime } from "luxon"; // Place at the top with other imports
 
   const getHabitsForDate = (selectedDateStr) =>
     habits.filter((h) => {

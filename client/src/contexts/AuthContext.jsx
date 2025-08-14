@@ -66,6 +66,7 @@ export const AuthProvider = ({ children }) => {
     setIsLoggingOut(true);
     setTimeout(() => {
       localStorage.removeItem("token");
+      localStorage.removeItem("chatMessages"); // 👈 clear chat
       setIsAuthenticated(false);
       setUser(null);
       setIsLoggingOut(false);

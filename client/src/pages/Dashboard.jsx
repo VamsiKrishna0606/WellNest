@@ -1,3 +1,4 @@
+// ✅ Updated Dashboard.jsx
 import { useRef } from "react";
 import Navigation from "../components/Navigation";
 import HabitTracker from "../components/HabitTracker";
@@ -10,15 +11,18 @@ import VoiceAssistant from "../components/VoiceAssistant";
 const Dashboard = () => {
   const chatRef = useRef(null);
 
+  // ✅ Connect VoiceAssistant to ChatAssistant
   const handleVoiceInput = (spokenText) => {
-    chatRef.current?.handleVoiceFromOutside(spokenText);
+    if (chatRef.current) {
+      chatRef.current.handleVoiceFromOutside(spokenText);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950">
       <Navigation />
 
-      {/* Floating Voice Assistant Mic Button */}
+      {/* ✅ Floating Mic Button */}
       <div className="fixed bottom-6 right-28 z-50">
         <VoiceAssistant onTextCaptured={handleVoiceInput} />
       </div>
@@ -51,6 +55,7 @@ const Dashboard = () => {
         </div>
       </div>
 
+      {/* ✅ Chat Assistant with voice connection */}
       <ChatAssistant ref={chatRef} />
     </div>
   );
