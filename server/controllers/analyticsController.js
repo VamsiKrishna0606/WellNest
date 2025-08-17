@@ -70,8 +70,10 @@ export const getDailyAnalytics = async (req, res) => {
 
 // ---------------- MONTHLY ----------------
 export const getMonthlyAnalytics = async (req, res) => {
-  const user = await User.findById(req.user.id);
+  const userId = req.user.id;
+  const user = await User.findById(userId);
   const timezone = user.timezone;
+
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -82,27 +84,26 @@ export const getMonthlyAnalytics = async (req, res) => {
     return d.toISOString().split("T")[0];
   });
 
-  const habits = await Habit.find({ userId: req.user.id });
-  const { start, end } = getUserTimezoneRange(new Date(dateStr), timezone);
-
-  const foodLogs = await FoodLog.find({
-    userId,
-    date: { $gte: start, $lt: end },
-  });
+  const habits = await Habit.find({ userId });
+  const foodLogs = await FoodLog.find({ userId });
 
   const data = days.map((dateStr) => {
     const dateObj = new Date(dateStr);
+
     const totalHabits = habits.filter(
       (h) =>
         new Date(h.startDate) <= dateObj &&
         (!h.endDate || new Date(h.endDate) >= dateObj)
     ).length;
+
     const completedHabits = habits.filter((h) =>
       h.completedDates.includes(dateStr)
     ).length;
+
     const calories = foodLogs
       .filter((log) => log.date.toISOString().split("T")[0] === dateStr)
       .reduce((acc, log) => acc + (log.calories || 0), 0);
+
     return {
       date: dateStr,
       habitsPercent: totalHabits ? (completedHabits / totalHabits) * 100 : 0,
@@ -118,7 +119,7 @@ export const getMonthlyAnalytics = async (req, res) => {
   res.json({
     labels: days.map((d) => d.substring(5)),
     datasets: data.map((d) => ({
-      date: d.date.split("-")[2],
+      date: d.date.split("-")[2], // only day of month
       habitsPercent: d.habitsPercent,
       calories: d.calories,
     })),
@@ -302,4 +303,3 @@ export const getSummaryForDate = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-  
