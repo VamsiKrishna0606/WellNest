@@ -27,11 +27,16 @@ const allowedOrigins = [
   "https://well-nest-three.vercel.app",
   "https://well-nest-gx1f2xdnh-vamsi-krishnas-projects-67b52aa7.vercel.app",
   "https://well-nest-j9b1cum4q-vamsi-krishnas-projects-67b52aa7.vercel.app",
+  "https://wellnest-35bfakack-vamsi-krishnas-projects-67b52aa7.vercel.app",
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (
+      !origin ||
+      allowedOrigins.includes(origin) ||
+      /https:\/\/wellnest-[a-z0-9-]+\.vercel\.app/.test(origin) // ✅ matches all Vercel previews
+    ) {
       callback(null, true);
     } else {
       callback(new Error("❌ CORS Blocked: " + origin));
