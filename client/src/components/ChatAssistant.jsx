@@ -32,10 +32,8 @@ const ChatAssistant = forwardRef((props, ref) => {
       console.log("🎤 Voice input received in ChatAssistant:", spokenText);
       const msg = (spokenText || "").trim();
       if (!msg) return;
-
-      setVoiceInputTriggered(true); // ✅ mark this as voice-triggered
-      setInputText(""); // clear chatbox
-      sendMessage(msg); // send it
+      setInputText("");
+      sendMessage(msg, true); // ✅ pass true for voice
     },
   }));
 
@@ -73,7 +71,7 @@ const ChatAssistant = forwardRef((props, ref) => {
     }
   };
 
-  const sendMessage = async (msg = inputText) => {
+  const sendMessage = async (msg = inputText, fromVoice = false) => {
     const trimmed = (msg || "").trim();
     if (!trimmed) return;
 
@@ -84,28 +82,17 @@ const ChatAssistant = forwardRef((props, ref) => {
     try {
       const res = await axiosInstance.post("/chatbot", { message: trimmed });
 
-      if (!res.data || !res.data.reply) throw new Error("No reply from server");
-
-      const botReply = res.data.reply;
-      const botMessage = { text: botReply, isBot: true };
+      // Add bot reply
+      const botMessage = { text: res.data.reply, isBot: true };
       setMessages((prev) => [...prev, botMessage]);
 
-      // ✅ Debug log
-      console.log("voiceInputTriggered =", voiceInputTriggered);
-
-      // ✅ Speak only if triggered by voice input
-      if (voiceInputTriggered) {
-        setTimeout(() => {
-          console.log("🔊 Speaking aloud:", botReply);
-          window.speechSynthesis.cancel(); // stop anything stuck
-          speakOutLoud(botReply);
-          setVoiceInputTriggered(false); // reset after speaking
-        }, 500); // small delay helps Chrome
+      // ✅ Speak out loud only if voice triggered
+      if (fromVoice) {
+        setTimeout(() => speakOutLoud(res.data.reply), 300);
       }
     } catch (error) {
-      console.error("Chat error:", error.message);
       const botMessage = {
-        text: "Something went wrong. Try again later.",
+        text: "Something went wrong. Please try again later.",
         isBot: true,
       };
       setMessages((prev) => [...prev, botMessage]);
