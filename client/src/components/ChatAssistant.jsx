@@ -26,14 +26,16 @@ const ChatAssistant = forwardRef((props, ref) => {
     }
   }, [messages]);
 
+  // ChatAssistant.jsx (inside useImperativeHandle)
   useImperativeHandle(ref, () => ({
     handleVoiceFromOutside(spokenText) {
       console.log("🎤 Voice input received in ChatAssistant:", spokenText);
-      setVoiceInputTriggered(true);
-      setInputText(spokenText);
-      setTimeout(() => {
-        sendMessage(spokenText);
-      }, 500);
+      const msg = (spokenText || "").trim();
+      if (!msg) return;
+
+      setVoiceInputTriggered(true); // ✅ mark this as voice-triggered
+      setInputText(""); // clear chatbox
+      sendMessage(msg); // send it
     },
   }));
 
@@ -44,55 +46,71 @@ const ChatAssistant = forwardRef((props, ref) => {
     synth.cancel();
 
     const cleanText = text.replace(/[🌀-🫐]/gu, "");
-
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = "en-US";
     utterance.pitch = 1;
     utterance.rate = 1;
     utterance.volume = 1;
 
-    const loadVoices = () => {
+    const chooseAndSpeak = () => {
       const voices = synth.getVoices();
       const voice =
-        voices.find((v) => v.name.includes("Google US English")) ||
+        voices.find((v) => v.name?.includes?.("Google US English")) ||
         voices.find((v) => v.lang === "en-US") ||
         voices[0];
-
-      if (voice) {
-        utterance.voice = voice;
-        synth.speak(utterance);
-      } else {
-        setTimeout(loadVoices, 100);
-      }
+      if (voice) utterance.voice = voice;
+      setTimeout(() => synth.speak(utterance), 120); // avoid race w/ mic
     };
 
-    loadVoices();
+    if (synth.getVoices().length === 0) {
+      const once = () => {
+        synth.removeEventListener("voiceschanged", once);
+        chooseAndSpeak();
+      };
+      synth.addEventListener("voiceschanged", once);
+    } else {
+      chooseAndSpeak();
+    }
   };
 
   const sendMessage = async (msg = inputText) => {
-    if (msg.trim()) {
-      const userMessage = { text: msg, isBot: false };
-      setMessages((prev) => [...prev, userMessage]);
+    const trimmed = (msg || "").trim();
+    if (!trimmed) return;
 
-      try {
-        const res = await axiosInstance.post("/chatbot", { message: msg });
-        const botMessage = { text: res.data.reply, isBot: true };
-        setMessages((prev) => [...prev, botMessage]);
+    // Add user message
+    const userMessage = { text: trimmed, isBot: false };
+    setMessages((prev) => [...prev, userMessage]);
 
-        if (voiceInputTriggered === true) {
-          setTimeout(() => speakOutLoud(res.data.reply), 300);
-        }
-        setVoiceInputTriggered(false);
-      } catch (error) {
-        const botMessage = {
-          text: "Something went wrong. Please try again later.",
-          isBot: true,
-        };
-        setMessages((prev) => [...prev, botMessage]);
-      } finally {
-        setVoiceInputTriggered(false);
-        setInputText("");
+    try {
+      const res = await axiosInstance.post("/chatbot", { message: trimmed });
+
+      if (!res.data || !res.data.reply) throw new Error("No reply from server");
+
+      const botReply = res.data.reply;
+      const botMessage = { text: botReply, isBot: true };
+      setMessages((prev) => [...prev, botMessage]);
+
+      // ✅ Debug log
+      console.log("voiceInputTriggered =", voiceInputTriggered);
+
+      // ✅ Speak only if triggered by voice input
+      if (voiceInputTriggered) {
+        setTimeout(() => {
+          console.log("🔊 Speaking aloud:", botReply);
+          window.speechSynthesis.cancel(); // stop anything stuck
+          speakOutLoud(botReply);
+          setVoiceInputTriggered(false); // reset after speaking
+        }, 500); // small delay helps Chrome
       }
+    } catch (error) {
+      console.error("Chat error:", error.message);
+      const botMessage = {
+        text: "Something went wrong. Try again later.",
+        isBot: true,
+      };
+      setMessages((prev) => [...prev, botMessage]);
+    } finally {
+      setInputText("");
     }
   };
 

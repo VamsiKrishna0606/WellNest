@@ -83,10 +83,13 @@ export const chatWithAssistant = async (req, res) => {
     ]);
 
     const todayHabits = habits.filter((h) => {
-      const start = DateTime.fromISO(h.startDate).toISODate();
-      const end = h.endDate ? DateTime.fromISO(h.endDate).toISODate() : null;
+      const start = DateTime.fromJSDate(new Date(h.startDate)).toISODate();
+      const end = h.endDate
+        ? DateTime.fromJSDate(new Date(h.endDate)).toISODate()
+        : null;
       return start <= today && (!end || today <= end);
     });
+
     const completedHabits = todayHabits.filter((h) =>
       h.completedDates.includes(today)
     );
@@ -125,7 +128,18 @@ export const chatWithAssistant = async (req, res) => {
 
     const mood = journal?.moodRating || "Not recorded";
     const journalEntry = journal?.entry || "";
-    const goalsText = goals ? JSON.stringify(goals) : "Not set";
+    const goalsText = goals
+      ? [
+          goals.dailySteps && `Steps:${goals.dailySteps}`,
+          goals.dailyCalories && `Cal:${goals.dailyCalories}`,
+          goals.weeklyWorkouts && `Workouts/wk:${goals.weeklyWorkouts}`,
+          goals.hydrationGoal && `Hydration:${goals.hydrationGoal}`,
+          goals.sleepGoal && `Sleep:${goals.sleepGoal}`,
+          goals.weightGoal && `Weight:${goals.weightGoal}`,
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : "Not set";
 
     const prompt = buildChatPrompt({
       habitCompletion,
@@ -144,9 +158,16 @@ export const chatWithAssistant = async (req, res) => {
     });
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.75,
+      model: "gpt-4o-mini", // faster + cheaper, still good
+      temperature: 0.7,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are WellNest AI — a concise, supportive fitness buddy. Keep replies under 100 words, include the user’s real stats, sound friendly (not formal), 1–3 emojis max.",
+        },
+        { role: "user", content: prompt },
+      ],
     });
 
     res.json({ reply: response.choices[0].message.content.trim() });

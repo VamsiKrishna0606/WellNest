@@ -83,7 +83,12 @@ export const getMonthlyAnalytics = async (req, res) => {
   });
 
   const habits = await Habit.find({ userId: req.user.id });
-  const foodLogs = await FoodLog.find({ userId: req.user.id });
+  const { start, end } = getUserTimezoneRange(new Date(dateStr), timezone);
+
+  const foodLogs = await FoodLog.find({
+    userId,
+    date: { $gte: start, $lt: end },
+  });
 
   const data = days.map((dateStr) => {
     const dateObj = new Date(dateStr);
@@ -181,13 +186,33 @@ export const getYearlyAnalytics = async (req, res) => {
 
   res.json({
     labels: [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ],
     datasets: data.map((d, idx) => ({
       month: [
-        "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-        "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
       ][idx],
       habitsPercent: d.habitsPercent,
       calories: d.calories,
@@ -212,14 +237,15 @@ export const getSummaryForDate = async (req, res) => {
       return res.status(400).json({ error: "Missing date." });
     }
 
+    const { start, end } = getUserTimezoneRange(new Date(dateStr), timezone);
+
     const allHabits = await Habit.find({ userId });
 
     const habitsList = allHabits
       .filter((h) => {
-        const start = new Date(h.startDate);
-        const end = h.endDate ? new Date(h.endDate) : null;
-        const targetDate = new Date(dateStr);
-        return targetDate >= start && (!end || targetDate <= end);
+        const startDate = new Date(h.startDate);
+        const endDate = h.endDate ? new Date(h.endDate) : null;
+        return start >= startDate && (!endDate || start <= endDate);
       })
       .map((h) => ({
         _id: h._id,
@@ -228,9 +254,10 @@ export const getSummaryForDate = async (req, res) => {
         isCompleted: h.completedDates.includes(dateStr),
       }));
 
+    // ✅ Fixed: match the full day range instead of exact match
     const foodLogs = await FoodLog.find({
       userId,
-      date: new Date(dateStr),
+      date: { $gte: start, $lt: end },
     });
 
     const foodByMealType = foodLogs.reduce((acc, item) => {
@@ -239,10 +266,10 @@ export const getSummaryForDate = async (req, res) => {
       return acc;
     }, {});
 
-    const journalEntry = await Journal.findOne({
-      userId,
-      date: dateStr,
-    });
+    const journalEntry =
+      (await Journal.findOne({ userId, date: dateStr })) ||
+      (await Journal.findOne({ userId, date: { $gte: start, $lt: end } })) ||
+      null;
 
     const userGoals = await UserGoals.findOne({ userId });
     const caloriesGoal = userGoals?.calories || 2000;
@@ -251,7 +278,7 @@ export const getSummaryForDate = async (req, res) => {
       (total, log) => total + (log.calories || 0),
       0
     );
-  
+
     const totalProtein = foodLogs.reduce(
       (acc, log) => acc + (log.protein || 0),
       0
@@ -269,9 +296,10 @@ export const getSummaryForDate = async (req, res) => {
       totalProtein,
       totalCarbs,
       totalFats,
-      journalEntry: journalEntry || null,
+      journalEntry,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+  

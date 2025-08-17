@@ -4,40 +4,58 @@ import UserGoals from "../models/UserGoals.js";
 import User from "../models/User.js";
 import { getUserTimezoneRange } from "../utils/dateHelpers.js";
 
+// format 'YYYY-MM-DD' in the user's timezone (no UTC shift)
+const formatDateInTZ = (d, tz) =>
+  new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+
 export const getStats = async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
     const timezone = user.timezone;
-    const { start: today, end: tomorrow } = getUserTimezoneRange(new Date(), timezone);
 
-    const todayISO = today.toISOString().split("T")[0];
+    // start/end boundaries for *today* in user's timezone
+    const { start: todayStart, end: todayEnd } = getUserTimezoneRange(
+      new Date(),
+      timezone
+    );
+    const todayISO = formatDateInTZ(todayStart, timezone); // 'YYYY-MM-DD'
 
+    // ---------- HABITS FOR TODAY ----------
     const habits = (await Habit.find({ userId: user._id })) || [];
-    const userGoals = await UserGoals.findOne({ userId: user._id });
-    const dailyCaloriesGoal = userGoals?.calories || 2000;
 
+    // A habit is “active today” if its [startDate, endDate] overlaps today's range.
     const todayHabits = habits.filter((h) => {
-      const start = new Date(h.startDate).toISOString().split("T")[0];
-      const end = h.endDate ? new Date(h.endDate).toISOString().split("T")[0] : null;
-      if (!end) return todayISO >= start;
-      return todayISO >= start && todayISO <= end;
+      const start = h.startDate ? new Date(h.startDate) : null;
+      const end = h.endDate ? new Date(h.endDate) : null;
+
+      if (start && start > todayEnd) return false; // starts after today
+      if (end && end < todayStart) return false; // ended before today
+      return true; // overlaps today
     });
 
     const totalHabitsToday = todayHabits.length;
 
+    // ✅ Compare strings directly — your DB stores 'YYYY-MM-DD'
     const completedHabitsToday = todayHabits.filter((h) =>
-      h.completedDates.some(
-        (date) => new Date(date).toISOString().split("T")[0] === todayISO
-      )
+      (h.completedDates || []).includes(todayISO)
     ).length;
 
     const habitsPercent = totalHabitsToday
       ? Math.round((completedHabitsToday / totalHabitsToday) * 100)
       : 0;
 
+    // ---------- FOOD CALORIES TODAY ----------
+    const userGoals = await UserGoals.findOne({ userId: user._id });
+    const dailyCaloriesGoal = userGoals?.calories || 2000;
+
     const foodLogsToday = await FoodLog.find({
       userId: user._id,
-      date: { $gte: today, $lt: tomorrow },
+      date: { $gte: todayStart, $lt: todayEnd },
     });
 
     const caloriesToday = foodLogsToday.reduce(
@@ -53,29 +71,23 @@ export const getStats = async (req, res) => {
 
     const todayGoalPercent = Math.round((habitsPercent + caloriesPercent) / 2);
 
+    // ---------- STREAK (walk backwards by TZ days using string dates) ----------
     const completedDatesSet = new Set();
-    habits.forEach((habit) => {
-      habit.completedDates.forEach((date) => {
-        completedDatesSet.add(new Date(date).toISOString().split("T")[0]);
-      });
-    });
+    habits.forEach((h) =>
+      (h.completedDates || []).forEach((d) => completedDatesSet.add(d))
+    );
 
-    const datesArray = Array.from(completedDatesSet).sort();
-    let streakCount = 0;
-    for (let i = datesArray.length - 1; i >= 0; i--) {
-      const dateStr = datesArray[i];
-      const dateObj = new Date(dateStr);
-      dateObj.setHours(0, 0, 0, 0);
-      const daysAgo = Math.floor((today - dateObj) / (1000 * 60 * 60 * 24));
-      if (daysAgo === streakCount) {
-        streakCount++;
-      } else {
-        break;
-      }
+    let streak = 0;
+    let cursor = new Date(todayStart); // start-of-day in TZ as UTC instant
+    while (true) {
+      const cursorISO = formatDateInTZ(cursor, timezone); // 'YYYY-MM-DD' in TZ
+      if (!completedDatesSet.has(cursorISO)) break;
+      streak++;
+      cursor = new Date(cursor.getTime() - 24 * 60 * 60 * 1000); // go to previous day
     }
 
     res.json({
-      streak: streakCount,
+      streak,
       caloriesToday,
       todayGoalPercent,
       habitsHit: `${completedHabitsToday} / ${totalHabitsToday}`,

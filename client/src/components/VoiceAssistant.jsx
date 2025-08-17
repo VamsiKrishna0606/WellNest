@@ -1,5 +1,5 @@
-// ✅ Updated VoiceAssistant.jsx
-import { useEffect, useRef, useState } from "react";
+// src/components/VoiceAssistant.jsx
+import { useEffect, useState, useRef } from "react";
 import {
   Tooltip,
   TooltipContent,
@@ -12,49 +12,84 @@ const VoiceAssistant = ({ onTextCaptured }) => {
   const recognitionRef = useRef(null);
 
   useEffect(() => {
-    if (!("webkitSpeechRecognition" in window)) return;
+    if (!("webkitSpeechRecognition" in window)) {
+      console.warn("SpeechRecognition not supported in this browser.");
+      return;
+    }
 
     const recognition = new window.webkitSpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = false;
-    recognition.maxAlternatives = 1;
+    recognition.continuous = false; // single result
 
+    recognition.onstart = () => {
+      console.log("🎙️ Mic activated");
+      // ✅ Stop any ongoing TTS before listening
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+    };
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      onTextCaptured(transcript);
-      setIsListening(false);
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const result = event.results[i];
+        if (result.isFinal) {
+          const transcript = result[0].transcript.trim();
+          console.log("✅ Final voice captured:", transcript);
+          if (transcript) onTextCaptured(transcript);
+        }
+      }
     };
 
     recognition.onerror = (event) => {
-      console.error("Speech recognition error:", event.error);
+      console.error("⚠️ SpeechRecognition error:", event.error);
       setIsListening(false);
     };
 
-    recognition.onnomatch = () => {
-      console.warn("Speech not recognized.");
+    recognition.onend = () => {
+      console.log("🛑 Mic stopped");
       setIsListening(false);
     };
 
     recognitionRef.current = recognition;
-  }, [onTextCaptured]);
 
-  useEffect(() => {
-    if (isListening) {
+    // ✅ cleanup on refresh/unmount
+    return () => {
       if (window.speechSynthesis.speaking) {
         window.speechSynthesis.cancel();
       }
-      recognitionRef.current?.start();
-    } else {
-      recognitionRef.current?.stop();
+      recognition.stop();
+    };
+  }, [onTextCaptured]);
+
+  const toggleListening = () => {
+    const recognition = recognitionRef.current;
+    if (!recognition) return;
+
+    // ✅ Cancel TTS every time you click mic
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
     }
-  }, [isListening]);
+
+    if (isListening) {
+      recognition.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognition.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error("❌ Could not start recognition:", err);
+        setIsListening(false);
+      }
+    }
+  };
 
   return (
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            onClick={() => setIsListening((prev) => !prev)}
+            onClick={toggleListening}
             className={`w-20 h-20 rounded-full flex items-center justify-center transition-bounce neon-glow floating-element ${
               isListening
                 ? "bg-gradient-to-r from-indigo-600 to-blue-600 animate-pulse scale-110"
@@ -74,7 +109,7 @@ const VoiceAssistant = ({ onTextCaptured }) => {
           </button>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Hey Buddy! Speak Now</p>
+          <p>{isListening ? "Listening..." : "Hey Buddy! Speak Now"}</p>
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
